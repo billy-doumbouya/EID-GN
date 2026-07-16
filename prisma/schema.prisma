@@ -1,0 +1,358 @@
+// ==========================================
+// CONFIGURATION DE BASE (NEON / POSTGRES)
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum CustomerType {
+  DETAIL
+  GROS
+}
+
+enum ProductType {
+  MOTO
+  TRICYCLE
+  PIECE
+}
+
+enum OrderStatus {
+  EN_ATTENTE
+  PAYEE
+  EN_PREPARATION
+  EXPEDIEE
+  LIVREE
+  ANNULEE
+}
+
+enum PaymentProviderName {
+  LENGOPAY
+  DJOMY
+}
+
+enum PaymentStatus {
+  EN_ATTENTE
+  REUSSI
+  ECHOUE
+  REMBOURSE
+}
+
+enum DiscountType {
+  POURCENTAGE // ex: -10%
+  MONTANT_FIXE // ex: -50 000 GNF
+}
+
+// ==========================================
+// UTILISATEURS & ADRESSES
+// ==========================================
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  phone         String?       @unique
+  passwordHash  String
+  fullName      String
+  role          Role          @default(CLIENT)
+  customerType  CustomerType  @default(DETAIL) // Détermine si le client voit les prix Gros ou Détail
+  
+  // Infos pro pour les clients Grossistes (Haute-Guinée)
+  companyName   String?       // Nom de la boutique / entreprise
+  nif           String?       // Numéro d'Identification Fiscale
+
+  twoFaEnabled  Boolean       @default(false)
+  twoFaSecret   String?
+  optInEmail    Boolean       @default(true)
+  optInWhatsapp Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  addresses     Address[]
+  orders        Order[]
+  favorites     Favorite[]
+  passwordResets PasswordReset[]
+  chatSessions  ChatSession[]
+
+  @@index([role])
+  @@index([customerType])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   // ex: "Boutique Kankan", "Domicile Siguiri"
+  quartier  String
+  ville     String   @default("Kankan") // Centralise sur la Haute-Guinée
+  reperes   String?  // Crucial en Guinée (ex: "Derrière le grand marché, à côté de la station Shell")
+  telephone String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+// ==========================================
+// CATALOGUE PRODUITS & COMPATIBILITÉ
+// ==========================================
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToCategory")
+
+  products  Product[]
+  discounts Discount[] // Une promo peut s'appliquer à toute une catégorie (ex: -5% sur toutes les chaînes de moto)
+}
+
+model VehicleModel {
+  id    String      @id @default(cuid())
+  brand String      // ex: Sanya, Haojue, TVS, Bajaj
+  name  String      // ex: CG125, Boxer, King
+  type  ProductType // MOTO, TRICYCLE, PIECE
+
+  compatibleParts ProductCompatibility[]
+
+  @@unique([brand, name])
+}
+
+model Product {
+  id             String      @id @default(cuid())
+  sku            String      @unique
+  name           String
+  slug           String      @unique
+  description    String
+  type           ProductType
+  
+  // GRILLE TARIFAIRE DE BASE
+  priceDetail    Decimal     @db.Decimal(12, 2) // Prix pour un acheteur au détail
+  priceGros      Decimal     @db.Decimal(12, 2) // Prix unitaire de base pour un grossiste
+  minQtyGros     Int         @default(5)        // Quantité minimale d'achat pour déclencher le tarif de gros
+  
+  stock          Int         @default(0)
+  reservedStock  Int         @default(0)
+  lowStockAlert  Int         @default(3)
+  isPublished    Boolean     @default(true)
+  categoryId     String?
+  category       Category?   @relation(fields: [categoryId], references: [id])
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  images         ProductImage[]
+  compatibility  ProductCompatibility[]
+  orderItems     OrderItem[]
+  favorites      Favorite[]
+  stockReservations StockReservation[]
+  discounts      Discount[]  // Liens vers les réductions spécifiques à ce produit
+
+  @@index([type])
+  @@index([categoryId])
+}
+
+// ==========================================
+// SYSTÈME DE RÉDUCTION / PROMO (CRITIQUE)
+// ==========================================
+
+model Discount {
+  id          String       @id @default(cuid())
+  name        String       // ex: "Promo Tabaski", "Liquidation Sanya"
+  type        DiscountType // POURCENTAGE ou MONTANT_FIXE
+  value       Decimal      @db.Decimal(12, 2) // La valeur de la réduction (ex: 15.00 pour 15% ou 50000 pour 50 000 GNF)
+  
+  // Cibles de la réduction
+  applyToGros   Boolean    @default(false) // Est-ce que cette réduction s'applique aussi aux prix de gros ?
+  applyToDetail Boolean    @default(true)  // Est-ce qu'elle s'applique aux prix de détail ?
+
+  // Validité temporelle (Auto-expirant, pas besoin de cron job pour nettoyer)
+  validFrom   DateTime
+  validTo     DateTime
+
+  // Relations optionnelles (Une promo s'applique SOIT à un produit, SOIT à une catégorie)
+  productId   String?
+  product     Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([validFrom, validTo])
+}
+
+// ==========================================
+// COMMANDES, SYNC & PAIEMENT (Inchangés mais reliés)
+// ==========================================
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique // ex: CMD-2026-KANKAN-001
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  addressId       String?
+  address         Address?    @relation(fields: [addressId], references: [id])
+  sessionId       String? 
+  guestFullName   String?     
+  guestPhone      String?
+  guestEmail      String?
+  customerTypeAtOrder CustomerType @default(DETAIL) // Sauvegarde le statut du client au moment de l'achat
+
+  status          OrderStatus @default(EN_ATTENTE)
+  deliveryFee     Decimal     @db.Decimal(12, 2) @default(0)
+  total           Decimal     @db.Decimal(12, 2)
+
+  syncedToSheet   Boolean     @default(false)
+  syncedToSheetAt DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
+  payments        Payment[]
+  receipt         Receipt?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  String   // On stocke le prix unitaire final appliqué (réduction incluse) au moment de la commande
+}
+
+// [Reste des modèles : Payment, Receipt, StockReservation, Chat, etc. restent identiques à ton code initial]
+model StockReservation {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  sessionId String   
+  expiresAt DateTime 
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
+  @@index([sessionId])
+}
+
+model Payment {
+  id              String              @id @default(cuid())
+  orderId         String
+  order           Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider        PaymentProviderName
+  providerRef     String              
+  amount          Decimal             @db.Decimal(12, 2)
+  status          PaymentStatus       @default(EN_ATTENTE)
+  rawWebhook      Json?               
+  verifiedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  @@unique([provider, providerRef])
+  @@index([status])
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pdfUrl    String
+  createdAt DateTime @default(now())
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, productId])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([tokenHash])
+}
+
+model EmailBroadcast {
+  id              String   @id @default(cuid())
+  subject         String
+  bodyHtml        String
+  recipientsCount Int      @default(0)
+  status          String   @default("EN_ATTENTE")
+  createdAt       DateTime @default(now())
+  sentAt          DateTime?
+}
+
+model WhatsappBroadcast {
+  id              String   @id @default(cuid())
+  templateName    String   
+  message         String   
+  recipientsCount Int      @default(0)
+  status          String   @default("EN_ATTENTE")
+  createdAt       DateTime @default(now())
+  sentAt          DateTime?
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  messages ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      
+  content   String
+  createdAt DateTime    @default(now())
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductCompatibility {
+  id             String       @id @default(cuid())
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vehicleModelId String
+  vehicleModel   VehicleModel @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, vehicleModelId])
+}

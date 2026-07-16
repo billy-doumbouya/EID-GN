@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "aos/dist/aos.css";
+
+/* Tailwind v4 : configuration CSS-native via @theme, plus de tailwind.config.js requis */
+@theme {
+  --color-navy-950: #10161f;
+  --color-navy-900: #151e2e;
+  --color-navy-800: #1a2332;
+  --color-navy-700: #232f45;
+
+  --color-mechanic-600: #c2410c;
+  --color-mechanic-500: #ea580c;
+  --color-mechanic-400: #f97316;
+
+  --color-amber-500: #f5a623;
+
+  --color-offwhite-100: #f7f7f5;
+  --color-offwhite-200: #eeeeea;
+
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+body {
+  background: var(--color-offwhite-100);
+  color: var(--color-navy-900);
+  font-family: var(--font-body);
+}
+
+/* Focus visible pour l'accessibilite clavier - a ne jamais retirer */
+:focus-visible {
+  outline: 2px solid var(--color-mechanic-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Barre NProgress custom aux couleurs de la marque */
+#nprogress .bar {
+  background: var(--color-mechanic-500) !important;
+  height: 3px !important;
+}
+
+
+/* src/app/globals.css — à ajouter, remplace le bloc précédent que je t'avais donné */
+@keyframes zigzag-glint {
+  0% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}
+
+.animate-zigzag-glint {
+  animation: zigzag-glint 3.2s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+
+/* src/app/globals.css (extrait) */
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Animation de scintillement pour les cartes produits (si non géré par ProductCard) */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
