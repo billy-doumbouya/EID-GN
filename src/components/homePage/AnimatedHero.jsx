@@ -1,162 +1,103 @@
-// components/AnimatedHero.jsx
+// src/components/homePage/AnimatedHero.jsx
 "use client";
-import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { BlueprintEngine } from "./BlueprintEngine";
+
+const HEADLINE_LINES = [
+  "La pièce exacte",
+  "pour votre moto.",
+];
 
 export function AnimatedHero() {
-  const containerRef = useRef(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  // Effet de parallax sur l'image
-  const rotateX = useTransform(mouseY, [-300, 300], [10, -10]);
-  const rotateY = useTransform(mouseX, [-300, 300], [-10, 10]);
-  const springRotateX = useSpring(rotateX, { damping: 20, stiffness: 300 });
-  const springRotateY = useSpring(rotateY, { damping: 20, stiffness: 300 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      mouseX.set(x);
-      mouseY.set(y);
-    };
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  // Titre avec animation de lettres
-  const title = "Tout pour rouler, livré à Kankan";
-  const words = title.split(" ");
-
   return (
-    <section
-      ref={containerRef}
-      className="relative overflow-hidden bg-navy-900 text-white"
-    >
-      {/* Fond animé : gradient mesh + particules */}
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-800 via-mechanic-500/10 to-amber-500/10" />
-      <div className="absolute inset-0">
-        {[...Array(30)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white/5"
-            style={{
-              width: Math.random() * 6 + 2,
-              height: Math.random() * 6 + 2,
-              top: Math.random() * 100 + "%",
-              left: Math.random() * 100 + "%",
-            }}
-            animate={{
-              y: [0, -20, 0],
-              x: [0, 10, -10, 0],
-              opacity: [0.2, 0.8, 0.2],
-            }}
-            transition={{
-              duration: 5 + Math.random() * 10,
-              repeat: Infinity,
-              delay: Math.random() * 5,
-            }}
-          />
-        ))}
-      </div>
+    <section className="relative overflow-hidden bg-navy-900 text-white">
+      <div className="absolute inset-0 bg-grid-faint" />
+      <div className="absolute inset-0 bg-gradient-to-b from-navy-900 via-navy-900/95 to-navy-950" />
 
-      <div className="relative mx-auto flex max-w-7xl flex-col items-center gap-8 px-6 py-16 md:flex-row md:py-24">
+      <div className="relative mx-auto flex max-w-7xl flex-col items-center gap-10 px-6 py-20 md:flex-row md:py-28">
         {/* Texte */}
         <div className="flex-1 text-center md:text-left">
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-sm font-medium uppercase tracking-wide text-mechanic-400"
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="font-mono text-xs font-medium uppercase tracking-[0.2em] text-mechanic-400"
           >
-            Motos - Tricycles - Pièces détachées
+            Catalogue vérifié · Kankan, Guinée
           </motion.p>
 
-          <h1 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">
-            {words.map((word, wi) => (
-              <span key={wi} className="inline-block overflow-hidden">
-                {word.split("").map((char, ci) => (
-                  <motion.span
-                    key={ci}
-                    className="inline-block"
-                    initial={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{
-                      delay: 0.5 + wi * 0.1 + ci * 0.02,
-                      type: "spring",
-                      stiffness: 200,
-                    }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-                <span className="inline-block">&nbsp;</span>
-              </span>
+          <h1 className="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
+            {HEADLINE_LINES.map((line, i) => (
+              <motion.span
+                key={line}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 + i * 0.12, duration: 0.55, ease: "easeOut" }}
+                className="block"
+              >
+                {line}
+              </motion.span>
             ))}
-            <span className="text-mechanic-400">livré à Kankan</span>
+            <motion.span
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.55, ease: "easeOut" }}
+              className="block text-mechanic-400"
+            >
+              Vérifiée avant de partir.
+            </motion.span>
           </h1>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-            className="mt-4 max-w-md text-white/70 mx-auto md:mx-0"
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="mx-auto mt-5 max-w-md text-white/60 md:mx-0"
           >
-            Le plus grand catalogue de pièces détachées et de véhicules deux et
-            trois roues, avec vérification de compatibilité par modèle.
+            Motos, tricycles et pièces détachées, filtrés par modèle
+            compatible. Livraison en 24 à 48h sur Kankan.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5 }}
-            className="mt-6 flex flex-wrap gap-3 justify-center md:justify-start"
+            transition={{ delay: 0.95, duration: 0.5 }}
+            className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start"
           >
             <Link
               href="/pieces"
-              className="group relative overflow-hidden rounded-lg bg-mechanic-500 px-6 py-3 font-medium text-white transition-all hover:bg-mechanic-600 hover:scale-105"
+              className="group relative overflow-hidden rounded-lg bg-mechanic-500 px-6 py-3 font-medium text-white transition-colors hover:bg-mechanic-600"
             >
               <span className="relative z-10">Trouver une pièce</span>
               <motion.div
-                className="absolute inset-0 bg-white/20"
+                className="absolute inset-0 bg-white/15"
                 initial={{ x: "-100%" }}
                 whileHover={{ x: "100%" }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.5 }}
               />
             </Link>
             <Link
               href="/motos"
-              className="rounded-lg border border-white/20 px-6 py-3 font-medium text-white transition-all hover:bg-white/10 hover:scale-105"
+              className="rounded-lg border border-white/15 px-6 py-3 font-medium text-white/90 transition-colors hover:bg-white/5"
             >
               Voir les motos
             </Link>
           </motion.div>
         </div>
 
-        {/* Image 3D avec effet de parallax */}
+        {/* Signature visuelle : schema technique anime */}
         <motion.div
-          className="flex-1 perspective-1000"
-          style={{
-            rotateX: springRotateX,
-            rotateY: springRotateY,
-            transformStyle: "preserve-3d",
-          }}
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.7, ease: "easeOut" }}
+          className="w-full flex-1 max-w-lg"
         >
-          <div className="relative rounded-xl shadow-2xl overflow-hidden">
-            <Image
-              src="/hero-image.jpg"
-              alt="Illustration moto"
-              width={600}
-              height={400}
-              className="w-full h-auto object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 via-transparent to-transparent" />
+          <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+            <BlueprintEngine className="h-auto w-full text-white/70" />
+            <p className="mt-2 text-right font-mono text-[10px] tracking-widest text-white/30">
+              FIG. 01 — RÉF. COMPATIBILITÉ
+            </p>
           </div>
         </motion.div>
       </div>

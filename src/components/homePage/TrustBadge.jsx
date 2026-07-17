@@ -1,7 +1,6 @@
-// components/TrustBadge.jsx
+// src/components/homePage/TrustBadge.jsx
 "use client";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 import { Shield, Clock, CheckCircle } from "lucide-react";
 
 const items = [
@@ -23,64 +22,26 @@ const items = [
 ];
 
 export function TrustBadge() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-
   return (
-    <section
-      ref={ref}
-      className="relative overflow-hidden bg-navy-900 py-12 text-white"
-    >
-      {/* Fond avec particules */}
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-800 via-mechanic-500/5 to-amber-500/5" />
-      {[...Array(12)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-white/5"
-          style={{
-            width: Math.random() * 4 + 2,
-            height: Math.random() * 4 + 2,
-            top: Math.random() * 100 + "%",
-            left: Math.random() * 100 + "%",
-          }}
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0.2, 0.6, 0.2],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 6,
-            repeat: Infinity,
-            delay: Math.random() * 4,
-          }}
-        />
-      ))}
-
-      <div className="relative mx-auto grid max-w-7xl gap-8 px-6 text-center sm:grid-cols-3">
+    <section className="relative bg-navy-900 py-14 text-white">
+      <div className="absolute inset-0 bg-grid-faint opacity-60" />
+      <div className="relative mx-auto grid max-w-7xl gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 px-6 sm:grid-cols-3 sm:gap-px sm:px-0">
         {items.map((item, i) => {
           const Icon = item.icon;
           return (
             <motion.div
               key={item.label}
-              initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.15, duration: 0.6 }}
-              className="flex flex-col items-center"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ delay: i * 0.1, duration: 0.45 }}
+              className="flex flex-col items-start gap-3 bg-navy-900 px-6 py-8"
             >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{
-                  duration: 20,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                className="mb-3 rounded-full bg-white/10 p-4 backdrop-blur-sm"
-              >
-                <Icon className="h-8 w-8 text-mechanic-400" />
-              </motion.div>
-              <p className="font-display text-lg font-semibold text-mechanic-400">
+              <Icon className="h-6 w-6 text-mechanic-400" strokeWidth={1.75} />
+              <p className="font-display text-base font-semibold text-white">
                 {item.label}
               </p>
-              <p className="mt-1 text-sm text-white/60">{item.desc}</p>
+              <p className="font-mono text-xs text-white/45">{item.desc}</p>
             </motion.div>
           );
         })}

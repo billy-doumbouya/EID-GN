@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader, ImagePlus, X } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
-import { cn } from "@/lib/utils";
 import { LaunchDiscountForm } from "./LaunchDiscountForm";
+import { cn } from "@/lib/utiles";
 
 const PRODUCT_TYPES = ["MOTO", "TRICYCLE", "PIECE"];
 

@@ -340,8 +340,10 @@ model ProductImage {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
+  cloudinaryPublicId String?
   alt       String?
-  position  Int      @default(0)
+  isPrimary Boolean  @default(false) // image de couverture, affichée sur les listings
+  position  Int      @default(0)     // ordre d'affichage dans la galerie produit
   createdAt DateTime @default(now())
 
   @@index([productId])

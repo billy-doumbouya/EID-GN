@@ -10,7 +10,9 @@ import { ZigzagDivider } from "@/components/ZigzagDivider";
 import { useCatalogFilters } from "@/lib/uiStore";
 
 async function fetchProducts(params) {
-  const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v));
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v),
+  );
   const res = await fetch(`/api/products?${query.toString()}`);
   if (!res.ok) throw new Error("Impossible de charger le catalogue");
   return res.json();
@@ -41,7 +43,8 @@ export function CatalogGrid({ type, title, categories = [] }) {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["products", type, categorySlug, search, sort],
-    queryFn: () => fetchProducts({ type, category: categorySlug, search, sort }),
+    queryFn: () =>
+      fetchProducts({ type, category: categorySlug, search, sort }),
   });
 
   return (
@@ -49,7 +52,9 @@ export function CatalogGrid({ type, title, categories = [] }) {
       <div className="bg-navy-900 py-10 text-white">
         <Reveal className="mx-auto max-w-7xl px-6">
           <h1 className="font-display text-3xl font-bold">{title}</h1>
-          <p className="mt-1 text-white/60">Filtrez par categorie ou modele compatible</p>
+          <p className="mt-1 text-white/60">
+            Filtrez par categorie ou modele compatible
+          </p>
         </Reveal>
       </div>
 
@@ -61,7 +66,9 @@ export function CatalogGrid({ type, title, categories = [] }) {
 
           <select
             value={sort}
-            onChange={(e) => useCatalogFilters.getState().setSort(e.target.value)}
+            onChange={(e) =>
+              useCatalogFilters.getState().setSort(e.target.value)
+            }
             className="rounded-lg border border-navy-800/15 bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="recent">Plus recent</option>
@@ -70,7 +77,9 @@ export function CatalogGrid({ type, title, categories = [] }) {
           </select>
         </div>
 
-        {error && <p className="text-danger">Erreur de chargement, reessayez.</p>}
+        {error && (
+          <p className="text-danger">Erreur de chargement, reessayez.</p>
+        )}
 
         {isLoading && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -81,21 +90,23 @@ export function CatalogGrid({ type, title, categories = [] }) {
         )}
 
         {!isLoading && data?.products?.length === 0 && (
-          <p className="text-navy-800/60">Aucun produit ne correspond a votre recherche.</p>
+          <p className="text-navy-800/60">
+            Aucun produit ne correspond a votre recherche.
+          </p>
         )}
 
         {!isLoading && data?.products?.length > 0 && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/*
+              On passe le produit tel que renvoye par /api/products, sans le
+              remapper : il contient deja images[] (avec fallback Unsplash),
+              discounts (filtrees actives) et category.discounts. ProductCard
+              se charge du calcul de prix (computePrice) et du choix de
+              l'image de couverture (isPrimary).
+            */}
             {data.products.map((product, i) => (
               <Reveal key={product.id} delay={Math.min((i % 4) * 0.05, 0.15)}>
-                <ProductCard
-                  product={{
-                    ...product,
-                    price: Number(product.price),
-                    compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
-                    image: product.images?.[0]?.url || "/placeholder-product.jpg",
-                  }}
-                />
+                <ProductCard product={product} />
               </Reveal>
             ))}
           </div>

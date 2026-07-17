@@ -4,36 +4,53 @@ import { ProductCard } from "@/components/ProductCard";
 import { GearPattern } from "@/components/stats/AboutStats/GearPattern";
 import { Reveal } from "@/components/motion/Reveal";
 import { ZigzagDivider } from "@/components/ZigzagDivider";
-
+import { computePrice } from "@/lib/pricing/computePrice";
 
 export const metadata = { title: "Promotions" };
 export const revalidate = 300; // regenere au plus toutes les 5 min, pas de hit DB a chaque visite
 
+// Un produit est "en promo" s'il a au moins une Discount active, directement
+// ou via sa categorie. compareAtPrice n'est pas stocke : le prix barre est
+// toujours recalcule a partir de Discount via computePrice (voir ProductCard).
 async function getPromoProducts() {
+  const now = new Date();
+  const activeWindow = { validFrom: { lte: now }, validTo: { gte: now } };
+
   const products = await prisma.product.findMany({
-    where: { isPublished: true, compareAtPrice: { not: null } },
-    include: { images: { where: { isPrimary: true }, take: 1 } },
+    where: {
+      isPublished: true,
+      OR: [
+        { discounts: { some: activeWindow } },
+        { category: { discounts: { some: activeWindow } } },
+      ],
+    },
+    include: {
+      images: true,
+      discounts: { where: activeWindow },
+      category: { include: { discounts: { where: activeWindow } } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  return products.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    price: Number(p.price),
-    compareAtPrice: Number(p.compareAtPrice),
-    stock: p.stock,
-    lowStockAlert: p.lowStockAlert,
-    image: p.images[0]?.url || "/placeholder-product.jpg",
-  }));
+  // Serialisation obligatoire : priceDetail/priceGros/discount.value sont des
+  // instances Decimal (classe), que React interdit de passer telles quelles
+  // d'un Server Component vers un Client Component (ProductCard). Ce
+  // JSON round-trip les convertit en valeurs plates (string/number/ISO date).
+  return JSON.parse(JSON.stringify(products));
 }
 
+// Meilleur taux de reduction affiche dans le hero, calcule a partir du meme
+// computePrice que celui utilise par ProductCard (une seule source de verite).
 function getBestDiscount(products) {
   if (products.length === 0) return 0;
-  const rates = products.map((p) =>
-    Math.round((1 - p.price / p.compareAtPrice) * 100),
-  );
-  return Math.max(...rates);
+
+  const rates = products.map((p) => {
+    const { unitPrice, originalPrice } = computePrice(p, 1);
+    if (!originalPrice || originalPrice <= unitPrice) return 0;
+    return Math.round((1 - unitPrice / originalPrice) * 100);
+  });
+
+  return Math.max(...rates, 0);
 }
 
 export default async function PromotionsPage() {

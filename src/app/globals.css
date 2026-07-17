@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "aos/dist/aos.css";
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* Tailwind v4 : configuration CSS-native via @theme, plus de tailwind.config.js requis */
 @theme {
@@ -22,6 +23,7 @@
 
   --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 body {
@@ -50,30 +52,19 @@ body {
   height: 3px !important;
 }
 
-
-/* src/app/globals.css — à ajouter, remplace le bloc précédent que je t'avais donné */
 @keyframes zigzag-glint {
-  0% {
-    background-position: 130% 0;
-  }
-  100% {
-    background-position: -30% 0;
-  }
+  0% { background-position: 130% 0; }
+  100% { background-position: -30% 0; }
 }
-
 .animate-zigzag-glint {
   animation: zigzag-glint 3.2s ease-in-out infinite;
   animation-delay: 0.6s;
 }
 
-
-/* src/app/globals.css (extrait) */
-
 .perspective-1000 {
   perspective: 1000px;
 }
 
-/* Animation de scintillement pour les cartes produits (si non géré par ProductCard) */
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
@@ -82,4 +73,18 @@ body {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+/* Grille "papier millimetre" — identite blueprint/fiche technique du hero */
+.bg-grid-faint {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.bg-grid-faint-dark {
+  background-image:
+    linear-gradient(to right, rgba(21,30,46,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21,30,46,0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
 }

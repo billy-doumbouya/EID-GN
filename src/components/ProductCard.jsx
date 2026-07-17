@@ -7,6 +7,7 @@ import { cva } from "class-variance-authority";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/cartStore";
 import { cn } from "@/lib/utiles";
+import { computePrice } from "@/lib/pricing/computePrice";
 
 const stockLabel = cva("text-xs font-medium", {
   variants: {
@@ -37,18 +38,41 @@ function getStockStatus(product) {
   return "in";
 }
 
+// Les Decimal Prisma arrivent comme des objets (ou des strings selon le
+// serializer) cote client : on force la conversion avant tout affichage/calcul.
+function toNumber(value) {
+  return value == null ? 0 : Number(value);
+}
+
+// Image de couverture : la primaire si elle existe, sinon la premiere du
+// tableau (trie par position), sinon le placeholder local.
+function getPrimaryImageUrl(product) {
+  const images = product.images || [];
+  if (images.length === 0) return "/placeholder-product.jpg";
+  const primary = images.find((img) => img.isPrimary);
+  return (primary || images[0]).url;
+}
+
 export function ProductCard({ product }) {
   const addItem = useCartStore((s) => s.addItem);
   const status = getStockStatus(product);
   const isOutOfStock = status === "out";
+
+  const imageUrl = getPrimaryImageUrl(product);
+  // Prix catalogue = quantite 1 (prix detail sauf promo active).
+  // Necessite que la requete Prisma inclue product.discounts et
+  // product.category.discounts, sinon computePrice ne verra aucune promo.
+  const { unitPrice, originalPrice } = computePrice(product, 1);
+  const price = unitPrice;
+  const compareAtPrice = originalPrice > unitPrice ? originalPrice : null;
 
   function handleAdd() {
     addItem(
       {
         id: product.id,
         name: product.name,
-        price: product.price,
-        image: product.image,
+        price,
+        image: imageUrl,
         stock: product.stock,
       },
       1,
@@ -70,16 +94,16 @@ export function ProductCard({ product }) {
       >
         <div className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.06]">
           <Image
-            src={product.image}
+            src={imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 50vw, 25vw"
             className="object-cover"
           />
         </div>
-        {product.compareAtPrice && (
+        {compareAtPrice && (
           <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-navy-900">
-            Promo
+            -{Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}%
           </span>
         )}
       </Link>
@@ -94,11 +118,11 @@ export function ProductCard({ product }) {
 
         <div className="mt-1 flex items-baseline gap-2">
           <span className="font-semibold text-mechanic-500">
-            {product.price.toLocaleString("fr-FR")} GNF
+            {price.toLocaleString("fr-FR")} GNF
           </span>
-          {product.compareAtPrice && (
+          {compareAtPrice && (
             <span className="text-xs text-navy-800/40 line-through">
-              {product.compareAtPrice.toLocaleString("fr-FR")} GNF
+              {compareAtPrice.toLocaleString("fr-FR")} GNF
             </span>
           )}
         </div>

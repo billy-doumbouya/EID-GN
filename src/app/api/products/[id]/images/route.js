@@ -2,14 +2,150 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 
-// POST : Uploader et ajouter une image a un produit
-// Body: { imageUrl: string } ou { dataUrl: string } pour upload direct
-export async function POST(request, { params }) {
+const UNSPLASH_FALLBACK =
+  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80";
+
+// GET : Recuperer un produit avec toutes ses images
+// Fallback Unsplash si aucune image reelle
+export async function GET(request, { params }) {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: params.id },
+      include: {
+        images: true,
+        category: true,
+        compatibility: { include: { vehicleModel: true } },
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { error: "Produit non trouve" },
+        { status: 404 },
+      );
+    }
+
+    // Ajouter fallback image si pas d'images reelles
+    if (product.images.length === 0) {
+      product.images = [
+        {
+          id: `fallback-${product.id}`,
+          url: UNSPLASH_FALLBACK,
+          isFallback: true,
+        },
+      ];
+    }
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Erreur GET produit:", error);
+    return NextResponse.json(
+      { error: "Erreur lecture produit" },
+      { status: 500 },
+    );
+  }
+}
+
+// PUT : Mettre a jour les champs de base d'un produit.
+// Le prix barre / les promotions ne se gerent pas ici : c'est le role du
+// module Discount, expose via /admin/promotions (creation/desactivation
+// de promos independamment de l'edition produit).
+export async function PUT(request, { params }) {
   try {
     const body = await request.json();
-    const { imageUrl, dataUrl, position = 0, isPrimary = false } = body;
+    const {
+      name,
+      slug,
+      description,
+      priceDetail,
+      priceGros,
+      minQtyGros,
+      stock,
+      lowStockAlert,
+      isPublished,
+      categoryId,
+    } = body;
 
-    // Verifier que le produit existe
+    // Verifier unicite du slug si change
+    if (slug) {
+      const existing = await prisma.product.findFirst({
+        where: { slug, id: { not: params.id } },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { error: "Slug deja existe" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Validation des prix si fournis : meme regle que la creation
+    // (le prix gros ne doit pas depasser le prix detail).
+    let detail;
+    let gros;
+
+    if (priceDetail !== undefined) {
+      detail = parseFloat(priceDetail);
+      if (!Number.isFinite(detail) || detail < 0) {
+        return NextResponse.json(
+          { error: "priceDetail invalide" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (priceGros !== undefined) {
+      gros = parseFloat(priceGros);
+      if (!Number.isFinite(gros) || gros < 0) {
+        return NextResponse.json(
+          { error: "priceGros invalide" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (detail !== undefined && gros !== undefined && gros > detail) {
+      return NextResponse.json(
+        { error: "Le prix de gros ne peut pas depasser le prix detail" },
+        { status: 400 },
+      );
+    }
+
+    const product = await prisma.product.update({
+      where: { id: params.id },
+      data: {
+        ...(name && { name }),
+        ...(slug && { slug }),
+        ...(description && { description }),
+        ...(detail !== undefined && { priceDetail: detail }),
+        ...(gros !== undefined && { priceGros: gros }),
+        ...(minQtyGros !== undefined && {
+          minQtyGros: parseInt(minQtyGros, 10),
+        }),
+        ...(stock !== undefined && { stock: parseInt(stock, 10) }),
+        ...(lowStockAlert !== undefined && {
+          lowStockAlert: parseInt(lowStockAlert, 10),
+        }),
+        ...(isPublished !== undefined && { isPublished }),
+        ...(categoryId !== undefined && { categoryId }),
+      },
+      include: { images: true },
+    });
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Erreur PUT produit:", error);
+    return NextResponse.json(
+      { error: "Erreur mise a jour produit" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE : Supprimer un produit et ses images Cloudinary
+export async function DELETE(request, { params }) {
+  try {
+    // Recuperer les images pour les supprimer de Cloudinary
     const product = await prisma.product.findUnique({
       where: { id: params.id },
       include: { images: true },
@@ -18,138 +154,35 @@ export async function POST(request, { params }) {
     if (!product) {
       return NextResponse.json(
         { error: "Produit non trouve" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Si dataUrl fourni, uploader vers Cloudinary
-    let finalUrl = imageUrl;
-    let cloudinaryPublicId = null;
-
-    if (dataUrl) {
-      try {
-        const uploadResult = await cloudinary.uploader.upload(dataUrl, {
-          folder: `moto-shop/products/${params.id}`,
-          resource_type: "auto",
-        });
-        finalUrl = uploadResult.secure_url;
-        cloudinaryPublicId = uploadResult.public_id;
-      } catch (uploadError) {
-        console.error("Erreur upload Cloudinary:", uploadError);
-        return NextResponse.json(
-          { error: "Erreur upload image" },
-          { status: 500 }
-        );
+    // Supprimer les images Cloudinary
+    for (const image of product.images) {
+      if (image.cloudinaryPublicId) {
+        try {
+          await cloudinary.uploader.destroy(image.cloudinaryPublicId);
+        } catch (err) {
+          console.warn(
+            `Erreur suppression image ${image.cloudinaryPublicId}:`,
+            err,
+          );
+        }
       }
     }
 
-    if (!finalUrl) {
-      return NextResponse.json(
-        { error: "imageUrl ou dataUrl obligatoire" },
-        { status: 400 }
-      );
-    }
-
-    // Gerer position et isPrimary
-    let actualPosition = position;
-    let actualIsPrimary = isPrimary;
-
-    if (isPrimary && product.images.length > 0) {
-      // Enlever le flag isPrimary des autres images
-      await prisma.productImage.updateMany({
-        where: { productId: params.id },
-        data: { isPrimary: false },
-      });
-    }
-
-    // Si premiere image et aucune image primaire, la marquer comme primaire
-    if (product.images.length === 0) {
-      actualIsPrimary = true;
-    }
-
-    // Creer l'image
-    const newImage = await prisma.productImage.create({
-      data: {
-        productId: params.id,
-        url: finalUrl,
-        cloudinaryPublicId,
-        position: actualPosition || product.images.length,
-        isPrimary: actualIsPrimary,
-      },
+    // Supprimer le produit (cascade suppression des images BDD)
+    await prisma.product.delete({
+      where: { id: params.id },
     });
 
-    return NextResponse.json(newImage, { status: 201 });
+    return NextResponse.json({ message: "Produit supprime" });
   } catch (error) {
-    console.error("Erreur POST image:", error);
+    console.error("Erreur DELETE produit:", error);
     return NextResponse.json(
-      { error: "Erreur ajout image" },
-      { status: 500 }
-    );
-  }
-}
-
-// GET : Lister les images d'un produit
-export async function GET(request, { params }) {
-  try {
-    const images = await prisma.productImage.findMany({
-      where: { productId: params.id },
-      orderBy: { position: "asc" },
-    });
-
-    return NextResponse.json(images);
-  } catch (error) {
-    console.error("Erreur GET images:", error);
-    return NextResponse.json(
-      { error: "Erreur lecture images" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE : Supprimer une image spécifique
-export async function DELETE(request, { params }) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const imageId = searchParams.get("imageId");
-
-    if (!imageId) {
-      return NextResponse.json(
-        { error: "imageId obligatoire" },
-        { status: 400 }
-      );
-    }
-
-    const image = await prisma.productImage.findUnique({
-      where: { id: imageId },
-    });
-
-    if (!image) {
-      return NextResponse.json(
-        { error: "Image non trouvee" },
-        { status: 404 }
-      );
-    }
-
-    // Supprimer de Cloudinary
-    if (image.cloudinaryPublicId) {
-      try {
-        await cloudinary.uploader.destroy(image.cloudinaryPublicId);
-      } catch (err) {
-        console.warn(`Erreur suppression Cloudinary ${image.cloudinaryPublicId}:`, err);
-      }
-    }
-
-    // Supprimer de la BDD
-    await prisma.productImage.delete({
-      where: { id: imageId },
-    });
-
-    return NextResponse.json({ message: "Image supprimee" });
-  } catch (error) {
-    console.error("Erreur DELETE image:", error);
-    return NextResponse.json(
-      { error: "Erreur suppression image" },
-      { status: 500 }
+      { error: "Erreur suppression produit" },
+      { status: 500 },
     );
   }
 }
