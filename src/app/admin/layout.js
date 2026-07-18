@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-
 export default async function AdminLayout({ children }) {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {

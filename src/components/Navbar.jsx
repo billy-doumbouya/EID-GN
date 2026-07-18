@@ -24,7 +24,11 @@ async function fetchCurrentUser() {
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const itemCount = useCartStore((s) => s.itemCount()); // souscription selective
-  const { data } = useQuery({ queryKey: ["current-user"], queryFn: fetchCurrentUser, staleTime: 60_000 });
+  const { data } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: fetchCurrentUser,
+    staleTime:0,
+  });
   const isAdmin = data?.user?.role === "ADMIN";
 
   return (
@@ -48,7 +52,10 @@ export function Navbar() {
 
         <div className="hidden flex-1 max-w-xs md:flex">
           <div className="relative w-full">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/50" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/50"
+            />
             <input
               type="search"
               placeholder="Rechercher une piece, une moto..."
@@ -80,7 +87,11 @@ export function Navbar() {
               )}
             </Link>
           )}
-          <Link href="/compte" className="rounded-full p-2 hover:bg-navy-800/5" aria-label="Mon compte">
+          <Link
+            href="/compte"
+            className="rounded-full p-2 hover:bg-navy-800/5"
+            aria-label="Mon compte"
+          >
             <User size={22} className="text-navy-800" />
           </Link>
           <button

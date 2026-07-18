@@ -1,9 +1,22 @@
-// src/middleware.js
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const COOKIE_NAME = "moto_shop_session";
+
+// Empeche toute mise en cache (navigateur, CDN, proxy intermediaire) des
+// reponses admin. Sans ca, une reponse deja servie une fois peut etre
+// rejouee depuis un cache sans jamais repasser par ce middleware - donc
+// sans jamais re-verifier l'authentification.
+function withNoStore(response) {
+  response.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
+}
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -15,7 +28,7 @@ export async function middleware(request) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
   if (!token) {
-    return redirectToLogin(request);
+    return withNoStore(redirectToLogin(request));
   }
 
   try {
@@ -24,13 +37,13 @@ export async function middleware(request) {
     if (payload.role !== "ADMIN") {
       // Connecte mais pas admin : retour a l'accueil, pas vers /login
       // (se reconnecter ne changera pas son role).
-      return NextResponse.redirect(new URL("/", request.url));
+      return withNoStore(NextResponse.redirect(new URL("/", request.url)));
     }
 
-    return NextResponse.next();
+    return withNoStore(NextResponse.next());
   } catch {
     // Token invalide, expire, ou signature invalide
-    return redirectToLogin(request);
+    return withNoStore(redirectToLogin(request));
   }
 }
 
