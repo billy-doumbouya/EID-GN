@@ -1,7 +1,8 @@
-// src/app/(admin)/admin/produits/page.js
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 import Link from "next/link";
-import { Upload, Plus } from "lucide-react";
+import { Upload, Plus, Pencil } from "lucide-react";
+import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 
 export const metadata = { title: "Produits" };
 
@@ -22,7 +23,15 @@ async function getProducts({ query, type }) {
     },
     orderBy: { createdAt: "desc" },
     take: 100,
-    include: { category: true },
+    include: {
+      category: true,
+      // Une seule image : la primaire si elle existe, sinon la premiere
+      // par position. Suffisant pour une vignette de liste.
+      images: {
+        orderBy: [{ isPrimary: "desc" }, { position: "asc" }],
+        take: 1,
+      },
+    },
   });
 }
 
@@ -46,6 +55,21 @@ function StatusBadge({ isPublished }) {
     >
       {isPublished ? "Publie" : "Brouillon"}
     </span>
+  );
+}
+
+function Thumbnail({ product }) {
+  const url = product.images[0]?.url || "/placeholder-product.jpg";
+  return (
+    <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-offwhite-200">
+      <Image
+        src={url}
+        alt={product.name}
+        fill
+        className="object-cover"
+        sizes="40px"
+      />
+    </div>
   );
 }
 
@@ -121,6 +145,7 @@ export default async function AdminProductsPage({ searchParams }) {
             <table className="w-full text-sm">
               <thead className="bg-offwhite-200 text-left text-navy-800/70">
                 <tr>
+                  <th className="px-4 py-2"></th>
                   <th className="px-4 py-2">SKU</th>
                   <th className="px-4 py-2">Nom</th>
                   <th className="px-4 py-2">Type</th>
@@ -128,11 +153,15 @@ export default async function AdminProductsPage({ searchParams }) {
                   <th className="px-4 py-2">Prix gros</th>
                   <th className="px-4 py-2">Stock</th>
                   <th className="px-4 py-2">Statut</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => (
                   <tr key={p.id} className="border-t border-navy-800/5">
+                    <td className="px-4 py-2">
+                      <Thumbnail product={p} />
+                    </td>
                     <td className="px-4 py-2 text-navy-800/70">{p.sku}</td>
                     <td className="px-4 py-2 font-medium text-navy-900">
                       {p.name}
@@ -158,6 +187,21 @@ export default async function AdminProductsPage({ searchParams }) {
                     <td className="px-4 py-2">
                       <StatusBadge isPublished={p.isPublished} />
                     </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/admin/produits/${p.id}`}
+                          title="Modifier"
+                          className="rounded-lg p-2 text-navy-800/70 hover:bg-navy-800/5"
+                        >
+                          <Pencil size={16} />
+                        </Link>
+                        <DeleteProductButton
+                          productId={p.id}
+                          productName={p.name}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -172,11 +216,14 @@ export default async function AdminProductsPage({ searchParams }) {
                 className="rounded-xl border border-navy-800/10 bg-white p-4"
               >
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-navy-900">{p.name}</p>
-                    <p className="mt-0.5 text-xs text-navy-800/60">
-                      {p.sku} · {TYPE_LABELS[p.type] || p.type}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <Thumbnail product={p} />
+                    <div>
+                      <p className="font-medium text-navy-900">{p.name}</p>
+                      <p className="mt-0.5 text-xs text-navy-800/60">
+                        {p.sku} · {TYPE_LABELS[p.type] || p.type}
+                      </p>
+                    </div>
                   </div>
                   <StatusBadge isPublished={p.isPublished} />
                 </div>
@@ -194,9 +241,26 @@ export default async function AdminProductsPage({ searchParams }) {
                     </p>
                   </div>
                 </div>
-                <div className="mt-2 text-xs">
-                  Stock :{" "}
-                  <StockCell stock={p.stock} lowStockAlert={p.lowStockAlert} />
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span>
+                    Stock :{" "}
+                    <StockCell
+                      stock={p.stock}
+                      lowStockAlert={p.lowStockAlert}
+                    />
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/admin/produits/${p.id}`}
+                      className="rounded-lg p-2 text-navy-800/70 hover:bg-navy-800/5"
+                    >
+                      <Pencil size={16} />
+                    </Link>
+                    <DeleteProductButton
+                      productId={p.id}
+                      productName={p.name}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

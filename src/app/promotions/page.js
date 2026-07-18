@@ -1,116 +1,126 @@
-// src/app/(shop)/promotions/page.js
 import { prisma } from "@/lib/prisma";
-import { ProductCard } from "@/components/ProductCard";
-import { GearPattern } from "@/components/stats/AboutStats/GearPattern";
-import { Reveal } from "@/components/motion/Reveal";
-import { ZigzagDivider } from "@/components/ZigzagDivider";
-import { computePrice } from "@/lib/pricing/computePrice";
+import Link from "next/link";
+import { Plus, Pencil } from "lucide-react";
+import { DeactivatePromotionButton } from "@/components/admin/DeactivatePromotionButton";
 
 export const metadata = { title: "Promotions" };
-export const revalidate = 300; // regenere au plus toutes les 5 min, pas de hit DB a chaque visite
 
-// Un produit est "en promo" s'il a au moins une Discount active, directement
-// ou via sa categorie. compareAtPrice n'est pas stocke : le prix barre est
-// toujours recalcule a partir de Discount via computePrice (voir ProductCard).
-async function getPromoProducts() {
+const TYPE_LABELS = { POURCENTAGE: "%", MONTANT_FIXE: "GNF" };
+
+function getStatus(discount) {
   const now = new Date();
-  const activeWindow = { validFrom: { lte: now }, validTo: { gte: now } };
-
-  const products = await prisma.product.findMany({
-    where: {
-      isPublished: true,
-      OR: [
-        { discounts: { some: activeWindow } },
-        { category: { discounts: { some: activeWindow } } },
-      ],
-    },
-    include: {
-      images: true,
-      discounts: { where: activeWindow },
-      category: { include: { discounts: { where: activeWindow } } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Serialisation obligatoire : priceDetail/priceGros/discount.value sont des
-  // instances Decimal (classe), que React interdit de passer telles quelles
-  // d'un Server Component vers un Client Component (ProductCard). Ce
-  // JSON round-trip les convertit en valeurs plates (string/number/ISO date).
-  return JSON.parse(JSON.stringify(products));
+  if (new Date(discount.validTo) < now) return "expired";
+  if (new Date(discount.validFrom) > now) return "scheduled";
+  return "active";
 }
 
-// Meilleur taux de reduction affiche dans le hero, calcule a partir du meme
-// computePrice que celui utilise par ProductCard (une seule source de verite).
-function getBestDiscount(products) {
-  if (products.length === 0) return 0;
-
-  const rates = products.map((p) => {
-    const { unitPrice, originalPrice } = computePrice(p, 1);
-    if (!originalPrice || originalPrice <= unitPrice) return 0;
-    return Math.round((1 - unitPrice / originalPrice) * 100);
-  });
-
-  return Math.max(...rates, 0);
-}
-
-export default async function PromotionsPage() {
-  const products = await getPromoProducts();
-  const bestDiscount = getBestDiscount(products);
+function StatusBadge({ status }) {
+  const config = {
+    active: { label: "Active", cls: "bg-success/10 text-success" },
+    expired: { label: "Expiree", cls: "bg-navy-800/10 text-navy-800/60" },
+    scheduled: { label: "Planifiee", cls: "bg-amber-500/10 text-amber-600" },
+  }[status];
 
   return (
-    <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-navy-900 py-14 text-white md:py-20">
-        <GearPattern className="absolute inset-0 text-white" />
-        <div className="relative mx-auto max-w-3xl px-6 text-center">
-          <Reveal>
-            <p className="text-sm font-medium uppercase tracking-wide text-mechanic-400">
-              Offres du moment
-            </p>
-            <h1 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">
-              {bestDiscount > 0 ? (
-                <>
-                  Jusqu'a{" "}
-                  <span className="text-mechanic-400">-{bestDiscount}%</span>{" "}
-                  sur une selection de pieces
-                </>
-              ) : (
-                "Nos promotions"
-              )}
-            </h1>
-            <p className="mt-4 text-white/70">
-              Stock limite, verifie et livre a Kankan. Les prix baissent, pas la
-              qualite.
-            </p>
-          </Reveal>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${config.cls}`}>
+      {config.label}
+    </span>
+  );
+}
+
+function formatDate(date) {
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+export default async function AdminPromotionsPage() {
+  const discounts = await prisma.discount.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      product: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true } },
+    },
+  });
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-2xl font-semibold text-navy-900">
+          Promotions
+        </h1>
+        <Link
+          href="/admin/promotions/nouveau"
+          className="flex items-center gap-2 rounded-lg bg-mechanic-500 px-4 py-2 text-sm font-medium text-white hover:bg-mechanic-600"
+        >
+          <Plus size={16} /> Nouvelle promotion
+        </Link>
+      </div>
+
+      {discounts.length === 0 ? (
+        <div className="rounded-xl border border-navy-800/10 bg-white py-16 text-center">
+          <p className="text-sm text-navy-800/60">Aucune promotion pour le moment.</p>
         </div>
-      </section>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-navy-800/10 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-offwhite-200 text-left text-navy-800/70">
+              <tr>
+                <th className="px-4 py-2">Nom</th>
+                <th className="px-4 py-2">Valeur</th>
+                <th className="px-4 py-2">Cible</th>
+                <th className="px-4 py-2">Periode</th>
+                <th className="px-4 py-2">Statut</th>
+                <th className="px-4 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {discounts.map((d) => {
+                const status = getStatus(d);
+                const targetLabel = d.product
+                  ? `Produit : ${d.product.name}`
+                  : d.category
+                    ? `Categorie : ${d.category.name}`
+                    : "Cible manquante";
 
-      <ZigzagDivider color="var(--color-offwhite-100)" />
-
-      {/* Grille produits */}
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-6">
-        {products.length === 0 ? (
-          <Reveal>
-            <div className="mx-auto max-w-md rounded-xl border border-navy-800/10 bg-white py-16 text-center">
-              <p className="font-display text-lg font-semibold text-navy-900">
-                Aucune promotion en cours
-              </p>
-              <p className="mt-2 text-sm text-navy-800/60">
-                Revenez bientot, de nouvelles offres arrivent regulierement.
-              </p>
-            </div>
-          </Reveal>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {products.map((product, i) => (
-              <Reveal key={product.id} delay={Math.min(i * 0.05, 0.3)}>
-                <ProductCard product={product} />
-              </Reveal>
-            ))}
-          </div>
-        )}
-      </section>
-    </>
+                return (
+                  <tr key={d.id} className="border-t border-navy-800/5">
+                    <td className="px-4 py-2 font-medium text-navy-900">{d.name}</td>
+                    <td className="px-4 py-2 text-navy-800/70">
+                      {d.type === "POURCENTAGE"
+                        ? `-${Number(d.value)}%`
+                        : `-${Number(d.value).toLocaleString("fr-FR")} GNF`}
+                    </td>
+                    <td className="px-4 py-2 text-navy-800/70">{targetLabel}</td>
+                    <td className="px-4 py-2 text-navy-800/70">
+                      {formatDate(d.validFrom)} → {formatDate(d.validTo)}
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusBadge status={status} />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/admin/promotions/${d.id}`}
+                          title="Modifier"
+                          className="rounded-lg p-2 text-navy-800/70 hover:bg-navy-800/5"
+                        >
+                          <Pencil size={16} />
+                        </Link>
+                        {status !== "expired" && (
+                          <DeactivatePromotionButton discountId={d.id} />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

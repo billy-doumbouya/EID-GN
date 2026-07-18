@@ -1,79 +1,97 @@
-// src/app/api/discounts/route.js
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { discountSchema } from "@/lib/validations/discount";
 
+// GET : liste des promotions, filtrable par statut temporel.
+// ?status=active | expired | scheduled (omis = toutes)
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+    const now = new Date();
+
+    const where =
+      status === "active"
+        ? { validFrom: { lte: now }, validTo: { gte: now } }
+        : status === "expired"
+          ? { validTo: { lt: now } }
+          : status === "scheduled"
+            ? { validFrom: { gt: now } }
+            : {};
+
+    const discounts = await prisma.discount.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        product: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+      },
+    });
+
+    return NextResponse.json(discounts);
+  } catch (error) {
+    console.error("Erreur GET promotions:", error);
+    return NextResponse.json(
+      { error: "Erreur lecture des promotions" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST : creer une promotion (cible produit ou categorie)
 export async function POST(request) {
   try {
     const body = await request.json();
-    const {
-      name,
-      type,
-      value,
-      validFrom,
-      validTo,
-      applyToDetail,
-      applyToGros,
-      targetType, // "product" | "category"
-      targetId,
-    } = body;
+    const parsed = discountSchema.safeParse(body);
 
-    if (
-      !name ||
-      !type ||
-      value == null ||
-      !validFrom ||
-      !validTo ||
-      !targetType ||
-      !targetId
-    ) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Champs obligatoires manquants" },
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
 
-    const parsedValue = parseFloat(value);
-    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-      return NextResponse.json({ error: "Valeur invalide" }, { status: 400 });
-    }
-    if (type === "POURCENTAGE" && parsedValue > 100) {
+    const data = parsed.data;
+
+    // Verifier que la cible existe reellement avant de creer la promo
+    const target =
+      data.targetType === "product"
+        ? await prisma.product.findUnique({ where: { id: data.targetId } })
+        : await prisma.category.findUnique({ where: { id: data.targetId } });
+
+    if (!target) {
       return NextResponse.json(
-        { error: "Un pourcentage ne peut pas depasser 100" },
-        { status: 400 },
-      );
-    }
-    if (new Date(validTo) <= new Date(validFrom)) {
-      return NextResponse.json(
-        { error: "La date de fin doit etre apres la date de debut" },
-        { status: 400 },
-      );
-    }
-    if (!applyToDetail && !applyToGros) {
-      return NextResponse.json(
-        {
-          error:
-            "La promotion doit s'appliquer au moins au prix detail ou gros",
-        },
+        { error: `${data.targetType === "product" ? "Produit" : "Categorie"} introuvable` },
         { status: 400 },
       );
     }
 
     const discount = await prisma.discount.create({
       data: {
-        name,
-        type,
-        value: parsedValue,
-        validFrom: new Date(validFrom),
-        validTo: new Date(validTo),
-        applyToDetail: applyToDetail ?? true,
-        applyToGros: applyToGros ?? false,
-        productId: targetType === "product" ? targetId : null,
-        categoryId: targetType === "category" ? targetId : null,
+        name: data.name,
+        type: data.type,
+        value: data.value,
+        validFrom: data.validFrom,
+        validTo: data.validTo,
+        applyToDetail: data.applyToDetail,
+        applyToGros: data.applyToGros,
+        productId: data.targetType === "product" ? data.targetId : null,
+        categoryId: data.targetType === "category" ? data.targetId : null,
       },
     });
 
     return NextResponse.json(discount, { status: 201 });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return NextResponse.json(
+        { error: "Cible invalide (produit ou categorie introuvable)" },
+        { status: 400 },
+      );
+    }
     console.error("Erreur creation promotion:", error);
     return NextResponse.json(
       { error: "Erreur creation promotion" },

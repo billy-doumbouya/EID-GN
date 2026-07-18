@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // src/app/api/stats/route.js
@@ -10,7 +11,14 @@ export async function GET() {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [revenueByDay, topProductsRaw, byType, lowStock] = await Promise.all([
+  const [
+    revenueByDay,
+    topProductsRaw,
+    byType,
+    lowStock,
+    totalProducts,
+    totalOrdersAgg,
+  ] = await Promise.all([
     prisma.$queryRaw`
       SELECT DATE("createdAt") as date, SUM(total) as revenue
       FROM "Order"
@@ -30,6 +38,12 @@ export async function GET() {
       WHERE stock <= "lowStockAlert" AND "isPublished" = true
       LIMIT 10
     `,
+    prisma.product.count({ where: { isPublished: true } }),
+    prisma.order.aggregate({
+      where: { status: "PAYEE", createdAt: { gte: thirtyDaysAgo } },
+      _count: { id: true },
+      _sum: { total: true },
+    }),
   ]);
 
   // groupBy ne fait pas de jointure — on enrichit avec le nom du produit
@@ -45,5 +59,13 @@ export async function GET() {
     quantity: p._sum.quantity,
   }));
 
-  return NextResponse.json({ revenueByDay, topProducts, byType, lowStock });
+  return NextResponse.json({
+    revenueByDay,
+    topProducts,
+    byType,
+    lowStock,
+    totalProducts,
+    totalOrders: totalOrdersAgg._count.id,
+    totalRevenue: Number(totalOrdersAgg._sum.total || 0),
+  });
 }

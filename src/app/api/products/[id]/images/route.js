@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 
 const UNSPLASH_FALLBACK =
   "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80";
 
+const PRODUCT_TYPES = ["MOTO", "TRICYCLE", "PIECE"];
+
 // GET : Recuperer un produit avec toutes ses images
 // Fallback Unsplash si aucune image reelle
 export async function GET(request, { params }) {
   try {
+    const { id } = params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
-        images: true,
+        images: { orderBy: [{ isPrimary: "desc" }, { position: "asc" }] },
         category: true,
         compatibility: { include: { vehicleModel: true } },
       },
@@ -25,7 +29,6 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Ajouter fallback image si pas d'images reelles
     if (product.images.length === 0) {
       product.images = [
         {
@@ -52,11 +55,13 @@ export async function GET(request, { params }) {
 // de promos independamment de l'edition produit).
 export async function PUT(request, { params }) {
   try {
+    const { id } = params;
     const body = await request.json();
     const {
       name,
       slug,
       description,
+      type,
       priceDetail,
       priceGros,
       minQtyGros,
@@ -66,10 +71,17 @@ export async function PUT(request, { params }) {
       categoryId,
     } = body;
 
+    if (type !== undefined && !PRODUCT_TYPES.includes(type)) {
+      return NextResponse.json(
+        { error: `type doit etre l'un de : ${PRODUCT_TYPES.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
     // Verifier unicite du slug si change
     if (slug) {
       const existing = await prisma.product.findFirst({
-        where: { slug, id: { not: params.id } },
+        where: { slug, id: { not: id } },
       });
       if (existing) {
         return NextResponse.json(
@@ -111,12 +123,37 @@ export async function PUT(request, { params }) {
       );
     }
 
+    // Si un seul des deux prix est fourni, on doit comparer a la valeur
+    // existante en base pour ne pas laisser passer une incoherence
+    // (ex: on ne modifie que priceGros et il depasse le priceDetail actuel).
+    if ((detail !== undefined) !== (gros !== undefined)) {
+      const current = await prisma.product.findUnique({
+        where: { id },
+        select: { priceDetail: true, priceGros: true },
+      });
+      if (!current) {
+        return NextResponse.json(
+          { error: "Produit non trouve" },
+          { status: 404 },
+        );
+      }
+      const finalDetail = detail !== undefined ? detail : Number(current.priceDetail);
+      const finalGros = gros !== undefined ? gros : Number(current.priceGros);
+      if (finalGros > finalDetail) {
+        return NextResponse.json(
+          { error: "Le prix de gros ne peut pas depasser le prix detail" },
+          { status: 400 },
+        );
+      }
+    }
+
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(name && { name }),
         ...(slug && { slug }),
         ...(description && { description }),
+        ...(type !== undefined && { type }),
         ...(detail !== undefined && { priceDetail: detail }),
         ...(gros !== undefined && { priceGros: gros }),
         ...(minQtyGros !== undefined && {
@@ -127,13 +164,40 @@ export async function PUT(request, { params }) {
           lowStockAlert: parseInt(lowStockAlert, 10),
         }),
         ...(isPublished !== undefined && { isPublished }),
-        ...(categoryId !== undefined && { categoryId }),
+        ...(categoryId !== undefined && { categoryId: categoryId || null }),
       },
       include: { images: true },
     });
 
     return NextResponse.json(product);
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "SKU ou slug deja existant" },
+        { status: 409 },
+      );
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return NextResponse.json(
+        { error: "categoryId invalide : categorie introuvable" },
+        { status: 400 },
+      );
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json(
+        { error: "Produit non trouve" },
+        { status: 404 },
+      );
+    }
     console.error("Erreur PUT produit:", error);
     return NextResponse.json(
       { error: "Erreur mise a jour produit" },
@@ -142,13 +206,21 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE : Supprimer un produit et ses images Cloudinary
+// DELETE : Supprimer un produit et ses images Cloudinary.
+// Regle metier : bloque si le produit a deja ete commande au moins une
+// fois (on ne casse jamais l'historique de commande) ; dans ce cas,
+// depublier le produit (isPublished: false) via PUT est la bonne
+// alternative cote UI.
 export async function DELETE(request, { params }) {
   try {
-    // Recuperer les images pour les supprimer de Cloudinary
+    const { id } = params;
+
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
-      include: { images: true },
+      where: { id },
+      include: {
+        images: true,
+        _count: { select: { orderItems: true } },
+      },
     });
 
     if (!product) {
@@ -158,7 +230,19 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Supprimer les images Cloudinary
+    // Verification AVANT de toucher a Cloudinary : si la suppression BDD
+    // doit echouer, on ne veut pas avoir deja detruit les images.
+    if (product._count.orderItems > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Ce produit a deja ete commande et ne peut pas etre supprime. Depubliez-le a la place.",
+          code: "PRODUCT_HAS_ORDERS",
+        },
+        { status: 409 },
+      );
+    }
+
     for (const image of product.images) {
       if (image.cloudinaryPublicId) {
         try {
@@ -172,13 +256,24 @@ export async function DELETE(request, { params }) {
       }
     }
 
-    // Supprimer le produit (cascade suppression des images BDD)
-    await prisma.product.delete({
-      where: { id: params.id },
-    });
+    await prisma.product.delete({ where: { id } });
 
     return NextResponse.json({ message: "Produit supprime" });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      // Filet de securite si une contrainte FK bloque malgre le check ci-dessus
+      return NextResponse.json(
+        {
+          error:
+            "Ce produit est encore reference ailleurs (commandes, favoris...) et ne peut pas etre supprime.",
+          code: "PRODUCT_HAS_ORDERS",
+        },
+        { status: 409 },
+      );
+    }
     console.error("Erreur DELETE produit:", error);
     return NextResponse.json(
       { error: "Erreur suppression produit" },
