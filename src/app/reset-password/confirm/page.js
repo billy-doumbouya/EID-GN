@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-export default function ResetPasswordConfirmPage() {
+function ResetPasswordConfirmForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -60,5 +60,13 @@ export default function ResetPasswordConfirmPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function ResetPasswordConfirmPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto flex min-h-[70vh] max-w-sm items-center justify-center px-4 py-12">Chargement...</div>}>
+      <ResetPasswordConfirmForm />
+    </Suspense>
   );
 }

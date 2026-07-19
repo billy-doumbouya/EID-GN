@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import NProgress from "nprogress";
@@ -30,13 +30,20 @@ export function Providers({ children }) {
   const [queryClient] = useState(() => makeQueryClient());
 
   useEffect(() => {
-    AOS.init({ duration: 550, once: true, offset: 30, easing: "ease-out-cubic" });
+    AOS.init({
+      duration: 550,
+      once: true,
+      offset: 30,
+      easing: "ease-out-cubic",
+    });
   }, []);
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <RouteProgress />
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         {children}
         <Toaster
           position="top-right"

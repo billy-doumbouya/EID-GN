@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -72,5 +72,13 @@ export default function LoginPage() {
         <Link href="/register" className="text-navy-800/70 hover:underline">Creer un compte</Link>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto flex min-h-[70vh] max-w-sm items-center justify-center px-4 py-12">Chargement...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
