@@ -1,7 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/release-reservations", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/sync-sheets", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/panier-abandonne", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/release-reservations", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/sync-sheets", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/panier-abandonne", "schedule": "0 8 * * *" }
   ]
 }
