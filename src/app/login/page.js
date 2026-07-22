@@ -27,7 +27,9 @@ function LoginForm() {
       }
       toast.success("Connexion reussie");
       const explicitRedirect = searchParams.get("redirect");
-      router.push(explicitRedirect || (data.role === "ADMIN" ? "/admin" : "/compte"));
+      router.push(
+        explicitRedirect || (data.role === "ADMIN" ? "/admin" : "/compte"),
+      );
     } catch {
       toast.error("Erreur reseau, reessayez");
     } finally {
@@ -37,7 +39,9 @@ function LoginForm() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold text-navy-900">Connexion</h1>
+      <h1 className="font-display text-2xl font-semibold text-navy-900">
+        Connexion
+      </h1>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <label className="text-sm font-medium text-navy-800">Email</label>
@@ -50,7 +54,9 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-navy-800">Mot de passe</label>
+          <label className="text-sm font-medium text-navy-800">
+            Mot de passe
+          </label>
           <input
             type="password"
             required
@@ -68,8 +74,15 @@ function LoginForm() {
         </button>
       </form>
       <div className="mt-4 flex justify-between text-sm">
-        <Link href="/reset-password" className="text-mechanic-500 hover:underline">Mot de passe oublie ?</Link>
-        <Link href="/register" className="text-navy-800/70 hover:underline">Creer un compte</Link>
+        <Link
+          href="/reset-password"
+          className="text-mechanic-500 hover:underline"
+        >
+          Mot de passe oublie ?
+        </Link>
+        <Link href="/register" className="text-navy-800/70 hover:underline">
+          Creer un compte
+        </Link>
       </div>
     </div>
   );
@@ -77,7 +90,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="mx-auto flex min-h-[70vh] max-w-sm items-center justify-center px-4 py-12">Chargement...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto flex min-h-[70vh] max-w-sm items-center justify-center px-4 py-12">
+          Chargement...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

@@ -12,6 +12,7 @@ import {
   Send,
   Settings,
 } from "lucide-react";
+import { LogoutButton } from "@/components/LogoutButton";
 
 const LINKS = [
   { href: "/admin", label: "Vue d'ensemble", shortLabel: "Accueil", icon: LayoutDashboard },
@@ -58,6 +59,12 @@ export function AdminSidebar() {
             );
           })}
         </nav>
+
+        {/* mt-auto : pousse la deconnexion en bas de la sidebar, separee
+            visuellement du reste de la navigation */}
+        <div className="mt-auto border-t border-white/10 pt-3">
+          <LogoutButton variant="sidebar" />
+        </div>
       </aside>
 
       {/* Mobile : bottom navigation, plus naturel au pouce */}
@@ -78,6 +85,7 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+        <LogoutButton variant="mobile" />
       </nav>
     </>
   );

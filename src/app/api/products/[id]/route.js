@@ -8,20 +8,31 @@ export async function GET(request, { params }) {
   try {
     const product = await prisma.product.findUnique({
       where: { id: params.id },
-      include: { images: true, category: true, compatibility: { include: { vehicleModel: true } } },
+      include: {
+        images: true,
+        category: true,
+        compatibility: { include: { vehicleModel: true } },
+      },
     });
 
     if (!product) {
       return NextResponse.json(
         { error: "Produit non trouve" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Ajouter fallback images si pas d'images reelles
     if (product.images.length === 0) {
-      const UNSPLASH_FALLBACK = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80";
-      product.images = [{ id: `fallback-${product.id}`, url: UNSPLASH_FALLBACK, isFallback: true }];
+      const UNSPLASH_FALLBACK =
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80";
+      product.images = [
+        {
+          id: `fallback-${product.id}`,
+          url: UNSPLASH_FALLBACK,
+          isFallback: true,
+        },
+      ];
     }
 
     return NextResponse.json(product);
@@ -29,7 +40,7 @@ export async function GET(request, { params }) {
     console.error("Erreur GET produit:", error);
     return NextResponse.json(
       { error: "Erreur lecture produit" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -39,11 +50,14 @@ export async function PUT(request, { params }) {
   try {
     const body = await request.json();
     const {
+      sku,
       name,
       slug,
       description,
-      price,
-      compareAtPrice,
+      type,
+      priceDetail,
+      priceGros,
+      minQtyGros,
       stock,
       lowStockAlert,
       isPublished,
@@ -58,7 +72,20 @@ export async function PUT(request, { params }) {
       if (existing) {
         return NextResponse.json(
           { error: "Slug deja existe" },
-          { status: 400 }
+          { status: 400 },
+        );
+      }
+    }
+
+    // Verifier unicite du sku si change
+    if (sku) {
+      const existing = await prisma.product.findFirst({
+        where: { sku, id: { not: params.id } },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { error: "SKU deja existant" },
+          { status: 400 },
         );
       }
     }
@@ -66,15 +93,27 @@ export async function PUT(request, { params }) {
     const product = await prisma.product.update({
       where: { id: params.id },
       data: {
+        ...(sku && { sku }),
         ...(name && { name }),
         ...(slug && { slug }),
         ...(description && { description }),
-        ...(price !== undefined && { price: parseFloat(price) }),
-        ...(compareAtPrice !== undefined && { compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null }),
+        ...(type && { type }),
+        ...(priceDetail !== undefined && {
+          priceDetail: parseFloat(priceDetail),
+        }),
+        ...(priceGros !== undefined && {
+          priceGros:
+            priceGros !== null && priceGros !== ""
+              ? parseFloat(priceGros)
+              : null,
+        }),
+        ...(minQtyGros !== undefined && { minQtyGros: parseInt(minQtyGros) }),
         ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(lowStockAlert !== undefined && { lowStockAlert: parseInt(lowStockAlert) }),
+        ...(lowStockAlert !== undefined && {
+          lowStockAlert: parseInt(lowStockAlert),
+        }),
         ...(isPublished !== undefined && { isPublished }),
-        ...(categoryId !== undefined && { categoryId }),
+        ...(categoryId !== undefined && { categoryId: categoryId || null }),
       },
       include: { images: true },
     });
@@ -84,7 +123,7 @@ export async function PUT(request, { params }) {
     console.error("Erreur PUT produit:", error);
     return NextResponse.json(
       { error: "Erreur mise a jour produit" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -101,7 +140,7 @@ export async function DELETE(request, { params }) {
     if (!product) {
       return NextResponse.json(
         { error: "Produit non trouve" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -111,7 +150,10 @@ export async function DELETE(request, { params }) {
         try {
           await cloudinary.uploader.destroy(image.cloudinaryPublicId);
         } catch (err) {
-          console.warn(`Erreur suppression image ${image.cloudinaryPublicId}:`, err);
+          console.warn(
+            `Erreur suppression image ${image.cloudinaryPublicId}:`,
+            err,
+          );
         }
       }
     }
@@ -126,7 +168,7 @@ export async function DELETE(request, { params }) {
     console.error("Erreur DELETE produit:", error);
     return NextResponse.json(
       { error: "Erreur suppression produit" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -6,13 +6,18 @@ const prisma = new PrismaClient();
 // ---------------------------------------------------------------------------
 // Images produit — vraies photos Unsplash (licence libre, usage commercial
 // autorisé, aucune attribution requise), réparties par catégorie.
-// Remplace l'ancien placeholderImages() basé sur Picsum.
 //
 // Chaque run de seed FAIT UN RESET des images : les anciennes lignes
 // ProductImage du produit sont supprimées puis recréées avec ces URLs.
-// C'est la "commande de reset" demandée : `npm run db:seed` (ou
-// `node prisma/seed.js`) réapplique toujours les bonnes images, même sur
-// une base déjà peuplée avec les anciens placeholders Picsum.
+// `npm run db:seed` (ou `node prisma/seed.js`) réapplique toujours les
+// bonnes images, même sur une base déjà peuplée.
+//
+// Le nombre de produits par catégorie et le nombre d'images par produit
+// sont calés pour consommer l'INTÉGRALITÉ de chaque pool à chaque run
+// (pas de répétition tant que le pool n'est pas épuisé) :
+//   - pieces-detachees : 5 produits x 3 images = 15 (pool de 15)
+//   - motos            : 3 produits x 8 images = 24 (pool de 24)
+//   - tricycles        : 3 produits x 7/7/6    = 20 (pool de 20)
 // ---------------------------------------------------------------------------
 
 const UNSPLASH_IDS = {
@@ -117,8 +122,8 @@ function unsplashImages(categorySlug, altBase, count = 2) {
 }
 
 // RESET explicite des images d'un produit : supprime tout ce qui existe deja
-// (anciens placeholders Picsum ou anciennes photos Unsplash) puis recree la
-// liste fournie. Appele apres chaque upsert de produit, donc le seed reste
+// (anciens placeholders ou anciennes photos Unsplash) puis recree la liste
+// fournie. Appele apres chaque upsert de produit, donc le seed reste
 // idempotent ET remplace systematiquement les vieilles images a chaque run.
 async function resetProductImages(productId, images) {
   await prisma.productImage.deleteMany({ where: { productId } });
@@ -182,21 +187,41 @@ async function main() {
     create: { brand: "Bajaj", name: "Boxer 150", type: "MOTO" },
   });
 
+  const tvsSport100 = await prisma.vehicleModel.upsert({
+    where: { brand_name: { brand: "TVS", name: "Sport 100" } },
+    update: {},
+    create: { brand: "TVS", name: "Sport 100", type: "MOTO" },
+  });
+
   const kingTricycle = await prisma.vehicleModel.upsert({
     where: { brand_name: { brand: "TVS", name: "King" } },
     update: {},
     create: { brand: "TVS", name: "King", type: "TRICYCLE" },
   });
 
+  const bajajRE = await prisma.vehicleModel.upsert({
+    where: { brand_name: { brand: "Bajaj", name: "RE" } },
+    update: {},
+    create: { brand: "Bajaj", name: "RE", type: "TRICYCLE" },
+  });
+
+  const piaggioApe = await prisma.vehicleModel.upsert({
+    where: { brand_name: { brand: "Piaggio", name: "Ape" } },
+    update: {},
+    create: { brand: "Piaggio", name: "Ape", type: "TRICYCLE" },
+  });
+
   // ---------------------------------------------
   // Produits (tous les champs du schema renseignes)
   // Note : le bloc `images: { create: [...] }` est retire du create() car il
   // ne s'appliquerait qu'a la toute premiere insertion (upsert -> branche
-  // create uniquement). Les images sont maintenant geres par
+  // create uniquement). Les images sont maintenant gerees par
   // resetProductImages() juste apres, pour etre reappliquees a CHAQUE run.
   // ---------------------------------------------
 
-  // 1. Piece detachee : batterie
+  // ===== PIECES DETACHEES (5 produits x 3 images = pool de 15 epuise) =====
+
+  // 1. Batterie
   const batterie = await prisma.product.upsert({
     where: { sku: "BAT-CG125-001" },
     update: {},
@@ -221,10 +246,10 @@ async function main() {
   });
   await resetProductImages(
     batterie.id,
-    unsplashImages("pieces-detachees", batterie.name, 2),
+    unsplashImages("pieces-detachees", batterie.name, 3),
   );
 
-  // 2. Piece detachee : chaine de transmission (compatible 2 modeles)
+  // 2. Chaine de transmission (compatible 2 modeles)
   const chaine = await prisma.product.upsert({
     where: { sku: "CHN-UNIV-001" },
     update: {},
@@ -249,10 +274,105 @@ async function main() {
   });
   await resetProductImages(
     chaine.id,
-    unsplashImages("pieces-detachees", chaine.name, 2),
+    unsplashImages("pieces-detachees", chaine.name, 3),
   );
 
-  // 3. Moto complete
+  // 3. Kit de plaquettes de frein
+  const plaquettes = await prisma.product.upsert({
+    where: { sku: "BRK-UNIV-001" },
+    update: {},
+    create: {
+      sku: "BRK-UNIV-001",
+      name: "Kit de plaquettes de frein avant/arriere",
+      slug: "kit-plaquettes-frein",
+      description:
+        "Kit complet de plaquettes de frein, compatible motos 100-150cc.",
+      type: "PIECE",
+      priceDetail: 85000,
+      priceGros: 65000,
+      minQtyGros: 10,
+      stock: 30,
+      lowStockAlert: 6,
+      isPublished: true,
+      categoryId: categoriePieces.id,
+      compatibility: {
+        create: [
+          { vehicleModelId: cg125.id },
+          { vehicleModelId: tvsSport100.id },
+        ],
+      },
+    },
+  });
+  await resetProductImages(
+    plaquettes.id,
+    unsplashImages("pieces-detachees", plaquettes.name, 3),
+  );
+
+  // 4. Filtre a huile moteur
+  const filtreHuile = await prisma.product.upsert({
+    where: { sku: "FIL-UNIV-001" },
+    update: {},
+    create: {
+      sku: "FIL-UNIV-001",
+      name: "Filtre a huile moteur",
+      slug: "filtre-huile-moteur",
+      description:
+        "Filtre a huile haute filtration, compatible plusieurs modeles de motos et tricycles.",
+      type: "PIECE",
+      priceDetail: 35000,
+      priceGros: 25000,
+      minQtyGros: 15,
+      stock: 60,
+      lowStockAlert: 12,
+      isPublished: true,
+      categoryId: categoriePieces.id,
+      compatibility: {
+        create: [
+          { vehicleModelId: boxer150.id },
+          { vehicleModelId: kingTricycle.id },
+        ],
+      },
+    },
+  });
+  await resetProductImages(
+    filtreHuile.id,
+    unsplashImages("pieces-detachees", filtreHuile.name, 3),
+  );
+
+  // 5. Amortisseur arriere renforce
+  const amortisseur = await prisma.product.upsert({
+    where: { sku: "AMO-UNIV-001" },
+    update: {},
+    create: {
+      sku: "AMO-UNIV-001",
+      name: "Amortisseur arriere renforce",
+      slug: "amortisseur-arriere-renforce",
+      description:
+        "Amortisseur arriere renforce, confort et stabilite accrus pour charges lourdes.",
+      type: "PIECE",
+      priceDetail: 145000,
+      priceGros: 120000,
+      minQtyGros: 5,
+      stock: 20,
+      lowStockAlert: 4,
+      isPublished: true,
+      categoryId: categoriePieces.id,
+      compatibility: {
+        create: [
+          { vehicleModelId: kingTricycle.id },
+          { vehicleModelId: bajajRE.id },
+        ],
+      },
+    },
+  });
+  await resetProductImages(
+    amortisseur.id,
+    unsplashImages("pieces-detachees", amortisseur.name, 3),
+  );
+
+  // ===== MOTOS (3 produits x 8 images = pool de 24 epuise) =====
+
+  // 1. Bajaj Boxer 150
   const moto = await prisma.product.upsert({
     where: { sku: "MOTO-BOXER150-001" },
     update: {},
@@ -275,9 +395,67 @@ async function main() {
       },
     },
   });
-  await resetProductImages(moto.id, unsplashImages("motos", moto.name, 3));
+  await resetProductImages(moto.id, unsplashImages("motos", moto.name, 8));
 
-  // 4. Tricycle complet
+  // 2. Haojue CG125
+  const cg125Moto = await prisma.product.upsert({
+    where: { sku: "MOTO-CG125-001" },
+    update: {},
+    create: {
+      sku: "MOTO-CG125-001",
+      name: "Haojue CG125",
+      slug: "haojue-cg125",
+      description:
+        "Moto legere et fiable, tres appreciee pour son faible cout d'entretien.",
+      type: "MOTO",
+      priceDetail: 9800000,
+      priceGros: 9200000,
+      minQtyGros: 3,
+      stock: 12,
+      lowStockAlert: 3,
+      isPublished: true,
+      categoryId: categorieMotos.id,
+      compatibility: {
+        create: [{ vehicleModelId: cg125.id }],
+      },
+    },
+  });
+  await resetProductImages(
+    cg125Moto.id,
+    unsplashImages("motos", cg125Moto.name, 8),
+  );
+
+  // 3. TVS Sport 100
+  const sport100 = await prisma.product.upsert({
+    where: { sku: "MOTO-TVSSPORT100-001" },
+    update: {},
+    create: {
+      sku: "MOTO-TVSSPORT100-001",
+      name: "TVS Sport 100",
+      slug: "tvs-sport-100",
+      description:
+        "Moto compacte et econome en carburant, ideale pour les trajets courts en ville.",
+      type: "MOTO",
+      priceDetail: 8200000,
+      priceGros: 7700000,
+      minQtyGros: 3,
+      stock: 10,
+      lowStockAlert: 2,
+      isPublished: true,
+      categoryId: categorieMotos.id,
+      compatibility: {
+        create: [{ vehicleModelId: tvsSport100.id }],
+      },
+    },
+  });
+  await resetProductImages(
+    sport100.id,
+    unsplashImages("motos", sport100.name, 8),
+  );
+
+  // ===== TRICYCLES (3 produits x 7/7/6 images = pool de 20 epuise) =====
+
+  // 1. TVS King
   const tricycle = await prisma.product.upsert({
     where: { sku: "TRI-TVSKING-001" },
     update: {},
@@ -302,7 +480,63 @@ async function main() {
   });
   await resetProductImages(
     tricycle.id,
-    unsplashImages("tricycles", tricycle.name, 3),
+    unsplashImages("tricycles", tricycle.name, 7),
+  );
+
+  // 2. Bajaj RE
+  const bajajTricycle = await prisma.product.upsert({
+    where: { sku: "TRI-BAJAJRE-001" },
+    update: {},
+    create: {
+      sku: "TRI-BAJAJRE-001",
+      name: "Bajaj RE",
+      slug: "bajaj-re",
+      description:
+        "Tricycle passager robuste, tres repandu pour le transport urbain.",
+      type: "TRICYCLE",
+      priceDetail: 25500000,
+      priceGros: 24000000,
+      minQtyGros: 2,
+      stock: 6,
+      lowStockAlert: 1,
+      isPublished: true,
+      categoryId: categorieTricycles.id,
+      compatibility: {
+        create: [{ vehicleModelId: bajajRE.id }],
+      },
+    },
+  });
+  await resetProductImages(
+    bajajTricycle.id,
+    unsplashImages("tricycles", bajajTricycle.name, 7),
+  );
+
+  // 3. Piaggio Ape
+  const piaggioTricycle = await prisma.product.upsert({
+    where: { sku: "TRI-PIAGGIOAPE-001" },
+    update: {},
+    create: {
+      sku: "TRI-PIAGGIOAPE-001",
+      name: "Piaggio Ape",
+      slug: "piaggio-ape",
+      description:
+        "Tricycle compact et maniable, adapte au commerce de proximite et aux petites livraisons.",
+      type: "TRICYCLE",
+      priceDetail: 24000000,
+      priceGros: 22500000,
+      minQtyGros: 2,
+      stock: 5,
+      lowStockAlert: 1,
+      isPublished: true,
+      categoryId: categorieTricycles.id,
+      compatibility: {
+        create: [{ vehicleModelId: piaggioApe.id }],
+      },
+    },
+  });
+  await resetProductImages(
+    piaggioTricycle.id,
+    unsplashImages("tricycles", piaggioTricycle.name, 6),
   );
 
   // ---------------------------------------------
@@ -347,7 +581,15 @@ async function main() {
   console.log(
     "Seed termine (images reinitialisees avec de vraies photos Unsplash) :",
     {
-      produits: [batterie.name, chaine.name, moto.name, tricycle.name],
+      pieces: [
+        batterie.name,
+        chaine.name,
+        plaquettes.name,
+        filtreHuile.name,
+        amortisseur.name,
+      ],
+      motos: [moto.name, cg125Moto.name, sport100.name],
+      tricycles: [tricycle.name, bajajTricycle.name, piaggioTricycle.name],
     },
   );
 }

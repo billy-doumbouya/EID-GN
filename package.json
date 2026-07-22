@@ -43,6 +43,7 @@
     "react-hook-form": "^7.53.0",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
+    "swiper": "^14.0.6",
     "tailwind-merge": "^3.6.0",
     "twilio": "^5.3.4",
     "vaul": "^1.1.2",
