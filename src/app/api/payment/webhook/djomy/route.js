@@ -15,6 +15,13 @@ import {
 // Djomy signe chaque webhook: header X-Webhook-Signature au format "v1:<hex>",
 // hex = HMAC-SHA256(rawBody, DJOMY_CLIENT_SECRET). Sans cette verification,
 // n'importe qui connaissant un transactionId peut appeler cet endpoint.
+export async function GET() {
+  return NextResponse.json(
+    { ok: true, message: "DJOMY webhook endpoint is ready" },
+    { status: 200 }
+  );
+}
+
 export async function POST(request) {
   const rawBody = await request.text();
 
