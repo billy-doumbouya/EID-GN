@@ -11,7 +11,10 @@ export async function createPayment(provider, params) {
   }
   if (provider === "DJOMY") {
     const result = await djomyCreatePaymentGateway(params);
-    return { providerRef: result.transactionId, redirectUrl: result.redirectUrl };
+    return {
+      providerRef: result.transactionId,
+      redirectUrl: result.redirectUrl,
+    };
   }
   throw new Error(`Fournisseur de paiement inconnu: ${provider}`);
 }
@@ -28,10 +31,17 @@ export async function verifyPayment(provider, providerRef) {
   }
   throw new Error(`Fournisseur de paiement inconnu: ${provider}`);
 }
-
 function normalizeStatus(rawStatus) {
   const s = String(rawStatus).toUpperCase();
   if (s === "SUCCESS" || s === "REUSSI") return "REUSSI";
-  if (s === "FAILED" || s === "ECHEC") return "ECHOUE";
-  return "EN_ATTENTE";
+  if (
+    s === "FAILED" ||
+    s === "ECHEC" ||
+    s === "CANCELLED" ||
+    s === "TIMEOUT" ||
+    s === "REFUNDED"
+  ) {
+    return "ECHOUE";
+  }
+  return "EN_ATTENTE"; // CREATED, PENDING, REDIRECTED — paiement toujours en cours
 }

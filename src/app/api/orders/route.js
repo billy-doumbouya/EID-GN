@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, prismaDirect } from "@/lib/prisma";
 import { orderCreateSchema } from "@/lib/validators";
 import { createPayment } from "@/lib/payments";
 import { computePrice } from "@/lib/pricing/computePrice";
@@ -42,20 +42,27 @@ async function reserveStockAtomic(tx, productId, quantity) {
 // reservation faite par reserveStockAtomic + nettoie les StockReservation
 // liees a la session, pour ne pas garder du stock bloque 15 minutes pour
 // une commande qui ne pourra jamais etre payee.
+//
+// Transaction interactive -> prismaDirect (le pooler Neon/PgBouncer en mode
+// "transaction" ne supporte pas prisma.$transaction(async (tx) => {...}),
+// cf. P2028).
 async function releaseReservedStock(order, sessionId) {
-  await prisma.$transaction(async (tx) => {
-    for (const item of order.items) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { reservedStock: { decrement: item.quantity } },
+  await prismaDirect.$transaction(
+    async (tx) => {
+      for (const item of order.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { reservedStock: { decrement: item.quantity } },
+        });
+      }
+      await tx.stockReservation.deleteMany({ where: { sessionId } });
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "ANNULEE" },
       });
-    }
-    await tx.stockReservation.deleteMany({ where: { sessionId } });
-    await tx.order.update({
-      where: { id: order.id },
-      data: { status: "ANNULEE" },
-    });
-  });
+    },
+    { maxWait: 10000, timeout: 15000 },
+  );
 }
 
 // Tente l'initiation du paiement avec retry + backoff exponentiel. Le
@@ -123,33 +130,20 @@ export async function POST(request) {
       }
     }
 
-    const order = await prisma.$transaction(async (tx) => {
-      let total = 0;
-      const orderItemsData = [];
-
-      for (const item of items) {
-        // 1) Reservation atomique EN PREMIER : c'est cette instruction qui
-        //    fait autorite sur la disponibilite reelle, pas une lecture
-        //    separee du stock.
-        const reserved = await reserveStockAtomic(
-          tx,
-          item.productId,
-          item.quantity,
-        );
-        if (!reserved) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { name: true },
-          });
-          throw new Error(
-            `STOCK_INSUFFISANT:${product?.name || item.productId}`,
-          );
-        }
-
-        // 2) Une fois la reservation garantie, lecture du produit pour le
-        //    prix sans risque de course.
-        const product = await tx.product.findUniqueOrThrow({
-          where: { id: item.productId },
+    // Transaction interactive -> prismaDirect, cf. commentaire sur
+    // releaseReservedStock plus haut (contournement du pooler Neon).
+    // timeout releve : la connexion directe Neon peut etre plus lente que
+    // le pooler (reveil du compute apres mise en veille "scale to zero").
+    const order = await prismaDirect.$transaction(
+      async (tx) => {
+        // 1) Un seul aller-retour pour tous les produits + leurs promos
+        //    actives (produit et categorie), au lieu d'une lecture par
+        //    article dans la boucle. Cette lecture ne depend pas de l'issue
+        //    de la reservation (les prix/promos ne changent pas selon le
+        //    stock), donc rien n'oblige a la refaire item par item.
+        const productIds = items.map((i) => i.productId);
+        const products = await tx.product.findMany({
+          where: { id: { in: productIds } },
           include: {
             discounts: { where: activeDiscountsFilter(now) },
             category: {
@@ -157,49 +151,82 @@ export async function POST(request) {
             },
           },
         });
+        const productsById = new Map(products.map((p) => [p.id, p]));
 
-        const priced = computePrice(product, item.quantity, now);
+        let total = 0;
+        const orderItemsData = [];
+        const reservationsData = [];
 
-        await tx.stockReservation.create({
-          data: {
+        for (const item of items) {
+          const product = productsById.get(item.productId);
+          if (!product) {
+            throw new Error(`STOCK_INSUFFISANT:${item.productId}`);
+          }
+
+          // Reservation atomique : c'est la SEULE requete qui doit rester
+          // sequentielle par article, car le check de disponibilite doit
+          // porter sur l'etat exact au moment de l'ecriture, pas sur la
+          // lecture batch ci-dessus qui peut etre legerement perimee.
+          const reserved = await reserveStockAtomic(
+            tx,
+            item.productId,
+            item.quantity,
+          );
+          if (!reserved) {
+            throw new Error(`STOCK_INSUFFISANT:${product.name}`);
+          }
+
+          const priced = computePrice(product, item.quantity, now);
+
+          reservationsData.push({
             productId: item.productId,
             quantity: item.quantity,
             sessionId,
             expiresAt: new Date(Date.now() + RESERVATION_MINUTES * 60 * 1000),
+          });
+
+          total += priced.unitPrice * item.quantity;
+          orderItemsData.push({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: priced.unitPrice,
+          });
+        }
+
+        // 2) Toutes les reservations en un seul aller-retour (createMany),
+        //    au lieu d'un create() par article dans la boucle.
+        if (reservationsData.length > 0) {
+          await tx.stockReservation.createMany({ data: reservationsData });
+        }
+
+        const deliveryFee = 0; // TODO: calcul selon zone de livraison
+        total += deliveryFee;
+
+        return tx.order.create({
+          data: {
+            orderNumber: generateOrderNumber(),
+            userId: user?.id || null,
+            addressId,
+            sessionId,
+            // Champs guest ignores si l'acheteur est connecte : on garde ses
+            // infos de compte comme source de verite plutot que de dupliquer.
+            guestFullName: user ? null : guestFullName,
+            guestPhone: user ? null : guestPhone,
+            guestEmail: user ? null : guestEmail,
+            customerTypeAtOrder: user?.customerType || "DETAIL",
+            deliveryFee,
+            total,
+            status: "EN_ATTENTE",
+            items: { create: orderItemsData },
           },
+          include: { items: true },
         });
-
-        total += priced.unitPrice * item.quantity;
-        orderItemsData.push({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: priced.unitPrice,
-        });
-      }
-
-      const deliveryFee = 0; // TODO: calcul selon zone de livraison
-      total += deliveryFee;
-
-      return tx.order.create({
-        data: {
-          orderNumber: generateOrderNumber(),
-          userId: user?.id || null,
-          addressId,
-          sessionId,
-          // Champs guest ignores si l'acheteur est connecte : on garde ses
-          // infos de compte comme source de verite plutot que de dupliquer.
-          guestFullName: user ? null : guestFullName,
-          guestPhone: user ? null : guestPhone,
-          guestEmail: user ? null : guestEmail,
-          customerTypeAtOrder: user?.customerType || "DETAIL",
-          deliveryFee,
-          total,
-          status: "EN_ATTENTE",
-          items: { create: orderItemsData },
-        },
-        include: { items: true },
-      });
-    });
+      },
+      {
+        maxWait: 10000, // temps max pour obtenir une connexion avant demarrage
+        timeout: 15000, // temps max d'execution total de la transaction
+      },
+    );
 
     let payment;
     try {

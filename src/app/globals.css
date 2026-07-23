@@ -39,7 +39,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -53,8 +55,12 @@ body {
 }
 
 @keyframes zigzag-glint {
-  0% { background-position: 130% 0; }
-  100% { background-position: -30% 0; }
+  0% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
 }
 .animate-zigzag-glint {
   animation: zigzag-glint 3.2s ease-in-out infinite;
@@ -66,11 +72,20 @@ body {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -78,13 +93,107 @@ body {
 /* Grille "papier millimetre" — identite blueprint/fiche technique du hero */
 .bg-grid-faint {
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 .bg-grid-faint-dark {
   background-image:
-    linear-gradient(to right, rgba(21,30,46,0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(21,30,46,0.06) 1px, transparent 1px);
+    linear-gradient(to right, rgba(21, 30, 46, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21, 30, 46, 0.06) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+/* Animations personnalisées */
+@keyframes float-particle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translate(20px, -30px) scale(1.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-10px, 20px) scale(0.8);
+    opacity: 0.2;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(234, 88, 12, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Classes utilitaires */
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.animate-gradient {
+  background-size: 300% 300%;
+  animation: gradient 4s ease infinite;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out forwards;
+}
+
+.bg-300\% {
+  background-size: 300% 300%;
+}
+
+/* Respect des préférences de mouvement réduit */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow,
+  .animate-pulse-ring,
+  .animate-gradient,
+  .animate-fade-up {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

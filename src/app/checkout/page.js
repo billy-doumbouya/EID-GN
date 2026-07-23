@@ -24,7 +24,7 @@ function useCartQuote(items) {
     }
     let cancelled = false;
     setLoading(true);
-    fetch("/api/cart/quote", {
+    fetch("/checkout/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
