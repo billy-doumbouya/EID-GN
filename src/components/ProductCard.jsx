@@ -7,32 +7,33 @@ import Link from "next/link";
 import { cva } from "class-variance-authority";
 import { toast } from "sonner";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay, Pagination, EffectFade } from "swiper/modules";
 import { useCartStore } from "@/lib/cartStore";
 import { cn } from "@/lib/utiles";
 import { computePrice } from "@/lib/pricing/computePrice";
 
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/effect-fade";
 
-const stockLabel = cva("text-xs font-medium", {
+const stockLabel = cva("text-[11px] font-semibold tracking-wide uppercase", {
   variants: {
     status: {
-      out: "text-danger",
-      low: "text-amber-500",
-      in: "text-success",
+      out: "text-rose-600 bg-rose-50 px-2 py-0.5 rounded",
+      low: "text-amber-600 bg-amber-50 px-2 py-0.5 rounded",
+      in: "text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded",
     },
   },
 });
 
 const addButton = cva(
-  "mt-3 w-full rounded-lg py-2 text-sm font-medium text-white transition-colors active:scale-95",
+  "mt-3 w-full rounded-lg py-2.5 text-xs font-semibold uppercase tracking-wider transition-all duration-200 active:scale-[0.98]",
   {
     variants: {
       status: {
-        out: "cursor-not-allowed bg-navy-800/20",
-        low: "bg-navy-900 hover:bg-mechanic-500",
-        in: "bg-navy-900 hover:bg-mechanic-500",
+        out: "cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200",
+        low: "bg-navy-900 text-white hover:bg-mechanic-500 shadow-sm hover:shadow",
+        in: "bg-navy-900 text-white hover:bg-mechanic-500 shadow-sm hover:shadow",
       },
     },
   },
@@ -44,18 +45,6 @@ function getStockStatus(product) {
   return "in";
 }
 
-// Les Decimal Prisma arrivent comme des objets (ou des strings selon le
-// serializer) cote client : on force la conversion avant tout affichage/calcul.
-function toNumber(value) {
-  return value == null ? 0 : Number(value);
-}
-
-// Toutes les images du produit, avec l'image isPrimary toujours en tete
-// (c'est elle qui sert de couverture et de premier slide), les autres
-// triees par position. Fallback local si le produit n'en a aucune.
-// Remplace l'ancien getPrimaryImageUrl() qui ne renvoyait qu'une seule URL :
-// on garde le tableau complet pour le slider, tout en respectant la meme
-// notion d'image primaire que le reste de l'app (cf. CatalogGrid).
 function getCardImages(product) {
   const images = product.images || [];
   if (images.length === 0) return [{ url: "/placeholder-product.jpg" }];
@@ -78,13 +67,8 @@ export function ProductCard({ product }) {
 
   const images = getCardImages(product);
   const hasMultipleImages = images.length > 1;
-  // Image de couverture utilisee pour le panier : toujours la premiere
-  // (position 0), independamment du slide affiche au moment du clic.
   const coverImageUrl = images[0].url;
 
-  // Prix catalogue = quantite 1 (prix detail sauf promo active).
-  // Necessite que la requete Prisma inclue product.discounts et
-  // product.category.discounts, sinon computePrice ne verra aucune promo.
   const { unitPrice, originalPrice } = computePrice(product, 1);
   const price = unitPrice;
   const compareAtPrice = originalPrice > unitPrice ? originalPrice : null;
@@ -100,43 +84,48 @@ export function ProductCard({ product }) {
       },
       1,
     );
-    toast.success(`${product.name} ajoute au panier`);
+    toast.success(`${product.name} ajouté au panier`);
   }
 
-  // Cycle auto au survol (desktop) ; sur mobile il n'y a pas de hover donc
-  // le swipe tactile natif de Swiper prend le relais tout seul.
+  // Activer l'autoplay uniquement au survol de cette carte spécifique
   function handleMouseEnter() {
-    swiperRef.current?.autoplay?.start();
+    if (!swiperRef.current) return;
+    swiperRef.current.autoplay.start();
   }
 
   function handleMouseLeave() {
-    const s = swiperRef.current;
-    if (!s) return;
-    s.autoplay?.stop();
-    s.slideTo(0, 200);
+    if (!swiperRef.current) return;
+    swiperRef.current.autoplay.stop();
+    swiperRef.current.slideTo(0, 300);
   }
 
   return (
     <div
       className={cn(
-        "group flex flex-col overflow-hidden rounded-xl border border-navy-800/10 bg-white",
-        "transition-[transform,box-shadow] duration-200 ease-out",
-        "hover:-translate-y-1 hover:shadow-lg hover:shadow-navy-900/5",
+        "group relative flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white",
+        "transition-all duration-300 ease-out",
+        "hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-navy-900/5",
       )}
     >
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-offwhite-200"
+        className="relative block aspect-square overflow-hidden bg-slate-50"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         {hasMultipleImages ? (
           <Swiper
-            modules={[Autoplay, Pagination]}
+            modules={[Autoplay, Pagination, EffectFade]}
+            effect="fade"
+            fadeEffect={{ crossFade: true }}
             onSwiper={(s) => (swiperRef.current = s)}
-            autoplay={{ delay: 900, disableOnInteraction: false }}
+            autoplay={{
+              delay: 1500, // Délai fixé à 1.5s
+              disableOnInteraction: false,
+              enabled: false, // Désactivé par défaut au démarrage
+            }}
             loop
-            pagination={{ clickable: false }}
+            pagination={{ clickable: true }}
             className="product-card-swiper h-full w-full"
           >
             {images.map((img, i) => (
@@ -146,8 +135,8 @@ export function ProductCard({ product }) {
                     src={img.url}
                     alt={img.alt || product.name}
                     fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                     priority={i === 0}
                   />
                 </div>
@@ -155,76 +144,85 @@ export function ProductCard({ product }) {
             ))}
           </Swiper>
         ) : (
-          <div className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.06]">
+          <div className="h-full w-full">
             <Image
               src={coverImageUrl}
               alt={product.name}
               fill
-              sizes="(max-width: 768px) 50vw, 25vw"
-              className="object-cover"
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
         )}
 
+        {/* Badge réduction */}
         {compareAtPrice && (
-          <span className="absolute left-2 top-2 z-10 rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-navy-900">
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-rose-600 px-2 py-1 text-[10px] font-bold tracking-wider uppercase text-white shadow-sm">
             -{Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}%
           </span>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-3">
-        <Link
-          href={`/products/${product.slug}`}
-          className="text-sm font-medium text-navy-900 line-clamp-2"
-        >
-          {product.name}
-        </Link>
-
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="font-semibold text-mechanic-500">
-            {price.toLocaleString("fr-FR")} GNF
-          </span>
-          {compareAtPrice && (
-            <span className="text-xs text-navy-800/40 line-through">
-              {compareAtPrice.toLocaleString("fr-FR")} GNF
-            </span>
-          )}
-        </div>
-
-        <div className="mt-1">
+      <div className="flex flex-1 flex-col p-4">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <span className={stockLabel({ status })}>
-            {status === "out" && "Rupture de stock"}
-            {status === "low" && `Stock limite (${product.stock})`}
+            {status === "out" && "Rupture"}
+            {status === "low" && `Reste ${product.stock}`}
             {status === "in" && "En stock"}
           </span>
         </div>
 
-        <button
-          onClick={handleAdd}
-          disabled={isOutOfStock}
-          className={addButton({ status })}
+        <Link
+          href={`/products/${product.slug}`}
+          className="text-sm font-semibold text-navy-900 transition-colors group-hover:text-mechanic-500 line-clamp-2"
         >
-          {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
-        </button>
+          {product.name}
+        </Link>
+
+        <div className="mt-auto pt-3">
+          <div className="flex items-baseline gap-2">
+            <span className="text-base font-bold text-navy-900">
+              {price.toLocaleString("fr-FR")} GNF
+            </span>
+            {compareAtPrice && (
+              <span className="text-xs text-slate-400 line-through">
+                {compareAtPrice.toLocaleString("fr-FR")} GNF
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={handleAdd}
+            disabled={isOutOfStock}
+            className={addButton({ status })}
+          >
+            {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
+          </button>
+        </div>
       </div>
 
-      {/* Style des puces de pagination Swiper, scope a cette carte uniquement.
-          Necessaire car les classes .swiper-pagination-* sont globales et
-          non stylables directement via className Tailwind. */}
       <style jsx global>{`
         .product-card-swiper .swiper-pagination {
-          bottom: 8px;
+          bottom: 8px !important;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .group:hover .product-card-swiper .swiper-pagination {
+          opacity: 1;
         }
         .product-card-swiper .swiper-pagination-bullet {
-          width: 5px;
-          height: 5px;
-          background: #fff;
+          width: 6px;
+          height: 6px;
+          background: #ffffff;
           opacity: 0.6;
+          margin: 0 3px !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
         .product-card-swiper .swiper-pagination-bullet-active {
           opacity: 1;
           background: #ea580c;
+          width: 14px;
+          border-radius: 4px;
         }
       `}</style>
     </div>

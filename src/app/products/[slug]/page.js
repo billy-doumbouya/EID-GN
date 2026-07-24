@@ -95,9 +95,13 @@ export default async function ProductPage({ params }) {
 
           <AddToCartButton
             product={{
-              ...product,
+              id: product.id,
+              name: product.name,
+              slug: product.slug,
               price: Number(product.priceDetail),
               image: product.images[0]?.url,
+              stock: product.stock,
+              lowStockAlert: product.lowStockAlert,
             }}
           />
         </div>

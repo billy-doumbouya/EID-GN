@@ -3,19 +3,25 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, Minus, Plus, Loader, AlertTriangle } from "lucide-react";
+import {
+  Trash2,
+  Minus,
+  Plus,
+  Loader,
+  AlertTriangle,
+  Package,
+  Banknote,
+  ShieldCheck,
+} from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem } = useCartStore();
 
-  const [quote, setQuote] = useState(null); // { lines, subtotal, unavailable }
+  const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Cle stable derivee des items pour ne redeclencher le fetch que quand
-  // productId/quantity changent reellement (le store recree un nouveau
-  // tableau a chaque set(), une dependance directe sur `items` boucler ait).
   const itemsKey = items.map((i) => `${i.productId}:${i.quantity}`).join(",");
 
   useEffect(() => {
@@ -56,7 +62,6 @@ export default function CartPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
 
   if (items.length === 0) {
@@ -65,7 +70,7 @@ export default function CartPage() {
         <p className="text-navy-800/60">Votre panier est vide.</p>
         <Link
           href="/"
-          className="mt-3 inline-block text-mechanic-500 hover:underline"
+          className="mt-3 inline-block font-medium text-mechanic-500 hover:underline"
         >
           Parcourir le catalogue
         </Link>
@@ -80,6 +85,13 @@ export default function CartPage() {
     (quote?.unavailable ?? []).map((u) => [u.productId, u]),
   );
   const showSkeleton = loading && !quote;
+
+  const paymentMethods = [
+    { name: "Orange Money", src: "/payment-logo/orange.png" },
+    { name: "MTN MoMo", src: "/payment-logo/mtn.png" },
+    { name: "Moov Africa", src: "/payment-logo/moov.png" },
+    { name: "Visa", src: "/payment-logo/visa.png" },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -113,6 +125,7 @@ export default function CartPage() {
           {items.map((item) => {
             const line = linesByProductId.get(item.productId);
             const unavailable = unavailableByProductId.get(item.productId);
+            const imageUrl = line?.image || item.image;
 
             return (
               <div
@@ -123,16 +136,16 @@ export default function CartPage() {
                     : "border-navy-800/10"
                 }`}
               >
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-offwhite-200">
-                  {/* line.image en priorite (frais), sinon item.image mis en
-                      cache dans le store au moment de l'ajout au panier. */}
-                  {(line?.image || item.image) && (
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-offwhite-200">
+                  {imageUrl ? (
                     <Image
-                      src={line?.image || item.image}
-                      alt={line?.name || item.name}
+                      src={imageUrl}
+                      alt={line?.name || item.name || "Produit"}
                       fill
                       className="object-cover"
                     />
+                  ) : (
+                    <Package className="h-6 w-6 text-navy-800/20" />
                   )}
                 </div>
 
@@ -142,8 +155,8 @@ export default function CartPage() {
                   </p>
 
                   {line && (
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <p className="text-sm text-mechanic-500">
+                    <div className="mt-0.5 flex flex-wrap items-baseline gap-2">
+                      <p className="text-sm font-semibold text-mechanic-500">
                         {line.unitPrice.toLocaleString("fr-FR")} GNF
                       </p>
                       {line.discountName && (
@@ -178,7 +191,7 @@ export default function CartPage() {
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="w-6 text-center text-sm">
+                  <span className="w-6 text-center text-sm font-medium">
                     {item.quantity}
                   </span>
                   <button
@@ -194,7 +207,7 @@ export default function CartPage() {
 
                 <button
                   onClick={() => removeItem(item.productId)}
-                  className="text-navy-800/40 hover:text-danger"
+                  className="p-1 text-navy-800/40 transition-colors hover:text-danger"
                   aria-label="Retirer"
                 >
                   <Trash2 size={18} />
@@ -205,6 +218,7 @@ export default function CartPage() {
         </div>
       )}
 
+      {/* Sous-total */}
       <div className="mt-6 flex items-center justify-between rounded-xl bg-navy-900 p-4 text-white">
         <span className="font-medium">Sous-total</span>
         <span className="flex items-center gap-2 text-lg font-semibold text-mechanic-400">
@@ -223,7 +237,7 @@ export default function CartPage() {
       <Link
         href="/checkout"
         aria-disabled={loading || quote?.unavailable?.length > 0}
-        className={`mt-4 block rounded-lg py-3 text-center font-medium text-white ${
+        className={`mt-4 block rounded-lg py-3 text-center font-medium text-white transition-colors ${
           loading || quote?.unavailable?.length > 0
             ? "pointer-events-none bg-mechanic-500/50"
             : "bg-mechanic-500 hover:bg-mechanic-600"
@@ -231,6 +245,41 @@ export default function CartPage() {
       >
         Passer commande
       </Link>
+
+      {/* Section Logos de Paiement (assets locaux) */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-navy-800/10 bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-navy-800/10 bg-offwhite-100/60 px-4 py-3">
+          <ShieldCheck size={16} className="text-emerald-600" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-navy-800/60">
+            Paiement 100% sécurisé
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 p-4 sm:gap-3">
+          {paymentMethods.map((method) => (
+            <div
+              key={method.name}
+              className="group flex h-14 items-center justify-center rounded-xl border border-navy-800/10 bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-mechanic-500/30 hover:shadow-md sm:h-16"
+            >
+              <div className="relative h-full w-full">
+                <Image
+                  src={method.src}
+                  alt={method.name}
+                  fill
+                  className="object-contain p-1 grayscale-0"
+                  sizes="80px"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Paiement à la livraison */}
+        <div className="mx-4 mb-4 flex items-center justify-center gap-2 rounded-lg bg-offwhite-100 py-2.5 text-xs font-medium text-navy-800/80">
+          <Banknote size={16} className="text-emerald-600" />
+          <span>Paiement en espèces à la livraison disponible</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -111,7 +111,24 @@ export async function POST(request) {
     paymentProvider,
   } = parsed.data;
 
-  const user = await getCurrentUser(); // null si client non connecte
+  // getCurrentUser() ne decode que le JWT ({ sub, role, email }) : il ne
+  // contient ni id Prisma exploitable via .id (c'est .sub), ni customerType,
+  // ni phone. On va chercher l'enregistrement complet en base pour avoir
+  // ces champs a jour (le JWT peut aussi etre perime de plusieurs jours).
+  const session = await getCurrentUser(); // null si client non connecte
+  const user = session
+    ? await prisma.user.findUnique({
+        where: { id: session.sub },
+        select: {
+          id: true,
+          customerType: true,
+          phone: true,
+          fullName: true,
+          email: true,
+        },
+      })
+    : null;
+
   const sessionId = request.headers.get("x-session-id") || crypto.randomUUID();
   const now = new Date();
 

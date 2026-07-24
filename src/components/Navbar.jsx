@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ShoppingCart, User, Menu, X, ShieldCheck } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
@@ -15,6 +16,11 @@ const NAV_LINKS = [
   { href: "/a-propos", label: "A propos" },
 ];
 
+function isActivePath(pathname, href) {
+  // exact match, ou sous-page (ex: /motos/125cc reste actif sur "Motos")
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 async function fetchCurrentUser() {
   const res = await fetch("/api/auth/me");
   if (!res.ok) return { user: null };
@@ -23,11 +29,19 @@ async function fetchCurrentUser() {
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const itemCount = useCartStore((s) => s.itemCount()); // souscription selective
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // S'exécute uniquement côté client après la première hydratation
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const itemCount = useCartStore((s) => s.itemCount());
   const { data } = useQuery({
     queryKey: ["current-user"],
     queryFn: fetchCurrentUser,
-    staleTime:0,
+    staleTime: 0,
   });
   const isAdmin = data?.user?.role === "ADMIN";
 
@@ -39,15 +53,23 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-navy-800 transition-colors hover:text-mechanic-500"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isActivePath(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`relative px-3 py-1.5 text-sm font-medium rounded transition-all duration-300 ease-out bg-gradient-to-t from-mechanic-500/20 to-mechanic-500/20 bg-no-repeat bg-bottom hover:text-mechanic-600 ${
+                  active
+                    ? "text-mechanic-600 font-semibold [background-size:100%_100%]"
+                    : "text-navy-800 [background-size:100%_0%] hover:[background-size:100%_100%]"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden flex-1 max-w-xs md:flex">
@@ -80,7 +102,7 @@ export function Navbar() {
               aria-label="Panier"
             >
               <ShoppingCart size={22} className="text-navy-800" />
-              {itemCount > 0 && (
+              {mounted && itemCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-mechanic-500 text-[11px] font-semibold text-white">
                   {itemCount}
                 </span>
@@ -124,16 +146,24 @@ export function Navbar() {
               Panier
             </Link>
           )}
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-navy-800 hover:bg-offwhite-200"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isActivePath(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setMobileOpen(false)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  active
+                    ? "bg-mechanic-500/20 text-mechanic-600 font-semibold"
+                    : "text-navy-800 hover:bg-offwhite-200"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
       )}
     </header>

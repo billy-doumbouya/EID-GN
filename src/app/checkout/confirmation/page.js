@@ -1,64 +1,42 @@
-// src/app/checkout/confirmation/ConfirmationStatus.jsx
-"use client";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { ConfirmationStatus } from "../ConfirmationStatus/page";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock } from "lucide-react";
+export const metadata = { title: "Confirmation de commande" };
 
-const PAID_STATUSES = ["PAYEE", "EN_PREPARATION", "EXPEDIEE", "LIVREE"];
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 15; // ~1 minute avant d'arreter et laisser le message "verifiez vos emails"
+export default async function ConfirmationPage({ searchParams }) {
+  const { order: orderNumber } = await searchParams;
+  const order = orderNumber
+    ? await prisma.order.findUnique({ where: { orderNumber } })
+    : null;
 
-export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
-  const router = useRouter();
-  const [status, setStatus] = useState(initialStatus);
-  const [pollCount, setPollCount] = useState(0);
-
-  const isPaid = PAID_STATUSES.includes(status);
-
-  useEffect(() => {
-    if (isPaid || pollCount >= MAX_POLLS) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/orders/${orderNumber}/status`);
-        if (res.ok) {
-          const data = await res.json();
-          setStatus(data.status);
-          if (PAID_STATUSES.includes(data.status)) {
-            router.refresh(); // resynchronise le reste de la page (items, etc.)
-          }
-        }
-      } catch {
-        // silencieux : on retente au prochain intervalle
-      }
-      setPollCount((c) => c + 1);
-    }, POLL_INTERVAL_MS);
-
-    return () => clearTimeout(timer);
-  }, [isPaid, pollCount, orderNumber, router]);
+  if (!order) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-24 text-center">
+        <p className="text-navy-800/60">Commande introuvable.</p>
+        <Link
+          href="/"
+          className="mt-3 inline-block text-mechanic-500 hover:underline"
+        >
+          Retour a l'accueil
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {isPaid ? (
-        <CheckCircle2 size={56} className="mx-auto text-success" />
-      ) : (
-        <Clock size={56} className="mx-auto animate-pulse text-amber-500" />
-      )}
-      <h1 className="mt-4 font-display text-xl font-semibold text-navy-900">
-        {isPaid ? "Paiement confirme" : "Paiement en cours de verification"}
-      </h1>
-      <p className="mt-2 text-navy-800/70">
-        Commande <strong>{orderNumber}</strong> —{" "}
-        {Number(total).toLocaleString("fr-FR")} GNF
-      </p>
-      {!isPaid && (
-        <p className="mt-2 text-sm text-navy-800/50">
-          {pollCount >= MAX_POLLS
-            ? "La verification prend plus de temps que prevu. Vous recevrez un email des que c'est confirme."
-            : "Si vous venez de payer, la confirmation peut prendre quelques instants."}
-        </p>
-      )}
-    </>
+    <div className="mx-auto max-w-md px-4 py-16 text-center">
+      <ConfirmationStatus
+        orderNumber={order.orderNumber}
+        initialStatus={order.status}
+        total={Number(order.total)}
+      />
+      <Link
+        href="/compte"
+        className="mt-6 inline-block rounded-lg bg-mechanic-500 px-6 py-2.5 font-medium text-white hover:bg-mechanic-600"
+      >
+        Voir mes commandes
+      </Link>
+    </div>
   );
 }
