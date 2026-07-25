@@ -15,11 +15,20 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr">
-      <body className="min-h-screen antialiased">
+    <html lang="fr" className="h-full">
+      {/* 
+        1. flex flex-col min-h-screen : Permet au body de prendre au minimum 100% de la hauteur de l'écran.
+      */}
+      <body className="flex min-h-screen flex-col antialiased">
         <Providers>
           <Navbar />
-          <main>{children}</main>
+
+          {/* 
+            2. flex-1 : Indique au main de s'étirer pour remplir tout l'espace disponible 
+               entre la Navbar et le Footer.
+          */}
+          <main className="flex-1">{children}</main>
+
           <ConditionalFooter />
           <ConditionalWidgets />
         </Providers>

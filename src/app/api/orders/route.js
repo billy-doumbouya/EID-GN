@@ -251,6 +251,7 @@ export async function POST(request) {
         amount: order.total,
         orderNumber: order.orderNumber,
         returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}`,
+        cancelUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}&status=failed`,
         callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment/webhook/${paymentProvider.toLowerCase()}`,
         payerNumber: guestPhone || user?.phone,
       });

@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
+import { PAYMENT_METHODS } from "@/components/data/paymentMethods";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem } = useCartStore();
@@ -86,12 +87,7 @@ export default function CartPage() {
   );
   const showSkeleton = loading && !quote;
 
-  const paymentMethods = [
-    { name: "Orange Money", src: "/payment-logo/orange.png" },
-    { name: "MTN MoMo", src: "/payment-logo/mtn.png" },
-    { name: "Moov Africa", src: "/payment-logo/moov.png" },
-    { name: "Visa", src: "/payment-logo/visa.png" },
-  ];
+ 
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -256,15 +252,15 @@ export default function CartPage() {
         </div>
 
         <div className="grid grid-cols-4 gap-2 p-4 sm:gap-3">
-          {paymentMethods.map((method) => (
+          {PAYMENT_METHODS.map((method) => (
             <div
-              key={method.name}
+              key={method.id}
               className="group flex h-14 items-center justify-center rounded-xl border border-navy-800/10 bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-mechanic-500/30 hover:shadow-md sm:h-16"
             >
               <div className="relative h-full w-full">
                 <Image
-                  src={method.src}
-                  alt={method.name}
+                  src={method.logoUrl}
+                  alt={method.label}
                   fill
                   className="object-contain p-1 grayscale-0"
                   sizes="80px"

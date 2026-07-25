@@ -1,16 +1,20 @@
 // Integration Djomy - https://developers.djomy.africa
 // Auth en 2 etapes : HMAC-SHA256(message=clientId, key=clientSecret) -> POST /v1/auth -> Bearer token
 // Chaque requete authentifiee exige DEUX headers : Authorization Bearer + X-API-KEY
-//
-// IMPORTANT : toutes les reponses Djomy sont enveloppees dans
-// { success, message, data, error, timestamp, status }.
-// Le token n'est PAS dans data.token mais dans data.accessToken (result.data.accessToken).
-// C'etait le bug racine du 401 : Authorization: Bearer undefined car on lisait data.token.
 
 import crypto from "crypto";
+import axios from "axios";
 
 const BASE_URL =
   process.env.DJOMY_BASE_URL || "https://sandbox-api.djomy.africa";
+
+// Client Axios preconfigure
+const djomyClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 function computeApiKeyHeader() {
   const clientId = process.env.DJOMY_CLIENT_ID;
@@ -27,34 +31,55 @@ function computeApiKeyHeader() {
   return `${clientId}:${signature}`;
 }
 
-// Helper commun : lit l'enveloppe { success, data, error, message } et
-// leve une erreur exploitable si success === false, sinon renvoie data.
-async function readDjomyEnvelope(res, label) {
-  if (!res.ok) throw new Error(`Djomy ${label} a echoue: ${res.status}`);
-  const result = await res.json();
-  if (!result.success) {
-    throw new Error(
-      `Djomy ${label} error: ${result.error?.message ?? result.message}`,
-    );
+// Helper commun : extrait la donnee de l'enveloppe { success, data, error, message }
+// et leve une erreur exploitable si success === false ou en cas d'erreur HTTP.
+function unwrapDjomyResponse(response, label) {
+  const result = response.data;
+
+  // Log de debug
+  console.log(
+    `DJOMY raw response [${label}]:`,
+    JSON.stringify(result, null, 2),
+  );
+
+  if (!result || result.success === false) {
+    const errorMsg =
+      result?.error?.message || result?.message || "Erreur inconnue Djomy";
+    throw new Error(`Djomy ${label} error: ${errorMsg}`);
   }
+
   return result.data;
 }
 
 async function getBearerToken() {
   const apiKey = computeApiKeyHeader();
-  const res = await fetch(`${BASE_URL}/v1/auth`, {
-    method: "POST",
-    headers: {
-      "X-API-KEY": apiKey,
-      "Content-Type": "application/json",
-    },
-  });
-  const data = await readDjomyEnvelope(res, "auth");
-  return data.accessToken; // <- avant: data.token (toujours undefined)
+
+  try {
+    const response = await djomyClient.post(
+      "/v1/auth",
+      {},
+      {
+        headers: {
+          "X-API-KEY": apiKey,
+        },
+      },
+    );
+
+    const data = unwrapDjomyResponse(response, "auth");
+    return data.accessToken; // data.accessToken (pas data.token)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError =
+        error.response.data?.error?.message ||
+        error.response.data?.message ||
+        error.message;
+      throw new Error(`Djomy auth HTTP ${error.response.status}: ${apiError}`);
+    }
+    throw error;
+  }
 }
 
-// Flow recommande par la doc : create_payment_gateway (delegue la selection du
-// mode de paiement + l'OTP au portail Djomy, plus simple a integrer cote UI).
+// Flow recommande par la doc : create_payment_gateway
 export async function djomyCreatePaymentGateway({
   amount,
   countryCode = "GN",
@@ -68,38 +93,68 @@ export async function djomyCreatePaymentGateway({
   const token = await getBearerToken();
   const apiKey = computeApiKeyHeader();
 
-  // Endpoint correct: /v1/payments/gateway (pas /v1/payment-gateway)
-  const res = await fetch(`${BASE_URL}/v1/payments/gateway`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      "X-API-KEY": apiKey,
-    },
-    body: JSON.stringify({
-      amount: Number(amount), // number, pas string
-      countryCode, // requis par l'API, remplace currency
-      payerNumber, // obligatoire meme si documente comme "pre-remplissage"
-      merchantPaymentReference: orderNumber, // remplace transactionReference
-      ...(returnUrl && { returnUrl }),
-      ...(cancelUrl && { cancelUrl }),
-      ...(allowedPaymentMethods && { allowedPaymentMethods }),
-      ...(metadata && { metadata }),
-    }),
-  });
+  try {
+    const response = await djomyClient.post(
+      "/v1/payments/gateway",
+      {
+        amount: Number(amount),
+        countryCode,
+        payerNumber,
+        merchantPaymentReference: orderNumber,
+        ...(returnUrl && { returnUrl }),
+        ...(cancelUrl && { cancelUrl }),
+        ...(allowedPaymentMethods && { allowedPaymentMethods }),
+        ...(metadata && { metadata }),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-API-KEY": apiKey,
+        },
+      },
+    );
 
-  const data = await readDjomyEnvelope(res, "create_payment_gateway");
-  return data; // { transactionId, redirectUrl, paymentUrl, status, ... }
+    return unwrapDjomyResponse(response, "create_payment_gateway");
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError =
+        error.response.data?.error?.message ||
+        error.response.data?.message ||
+        error.message;
+      throw new Error(
+        `Djomy create_payment_gateway HTTP ${error.response.status}: ${apiError}`,
+      );
+    }
+    throw error;
+  }
 }
 
 export async function djomyVerifyPayment(transactionId) {
   const token = await getBearerToken();
   const apiKey = computeApiKeyHeader();
 
-  // Endpoint correct: /v1/payments/{id}/status (pas /verify)
-  const res = await fetch(`${BASE_URL}/v1/payments/${transactionId}/status`, {
-    headers: { Authorization: `Bearer ${token}`, "X-API-KEY": apiKey },
-  });
+  try {
+    const response = await djomyClient.get(
+      `/v1/payments/${transactionId}/status`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-API-KEY": apiKey,
+        },
+      },
+    );
 
-  return readDjomyEnvelope(res, "verify_payment"); // { status, receivedAmount, ... }
+    return unwrapDjomyResponse(response, "verify_payment");
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError =
+        error.response.data?.error?.message ||
+        error.response.data?.message ||
+        error.message;
+      throw new Error(
+        `Djomy verify_payment HTTP ${error.response.status}: ${apiError}`,
+      );
+    }
+    throw error;
+  }
 }

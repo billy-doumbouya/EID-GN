@@ -1,32 +1,15 @@
 // src/app/(shop)/checkout/page.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useCartStore } from "@/lib/cartStore";
 import { ZigzagDivider } from "@/components/ZigzagDivider";
+import { PAYMENT_METHODS } from "@/components/data/paymentMethods";
 
 // Logos locaux (public/payment-logo/)
-const PAYMENT_METHODS = [
-  {
-    id: "orange-money",
-    label: "Orange Money",
-    logoUrl: "/payment-logo/orange.png",
-  },
-  {
-    id: "mobile-money",
-    label: "MTN Mobile Money",
-    logoUrl: "/payment-logo/mtn.png",
-  },
-  { id: "moov", label: "Moov Money", logoUrl: "/payment-logo/moov.png" },
-  {
-    id: "carte-bancaire",
-    label: "Carte bancaire (Visa)",
-    logoUrl: "/payment-logo/visa.png",
-  },
-];
 
 async function fetchCurrentUser() {
   const res = await fetch("/api/auth/me");
@@ -110,6 +93,10 @@ export default function CheckoutPage() {
   const [paymentProvider, setPaymentProvider] = useState("DJOMY");
   const [submitting, setSubmitting] = useState(false);
 
+  const [waitingOrderNumber, setWaitingOrderNumber] = useState(null);
+  const pollRef = useRef(null);
+  const popupRef = useRef(null);
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!quote || quote.unavailable?.length > 0) {
@@ -137,17 +124,49 @@ export default function CheckoutPage() {
 
       if (!res.ok) {
         toast.error(data.error || "Impossible de créer la commande");
+        setSubmitting(false);
         return;
       }
 
       clear();
-      window.location.href = data.redirectUrl;
+
+      // Ouvre Djomy dans un nouvel onglet au lieu de quitter le checkout —
+      // Djomy ne garantit pas de redirection retour automatique
+      // (cf. skipDjomyStatusPage), donc on surveille nous-memes le statut.
+      popupRef.current = window.open(data.redirectUrl, "_blank");
+      setWaitingOrderNumber(data.orderNumber);
     } catch {
       toast.error("Erreur réseau, réessayez");
-    } finally {
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (!waitingOrderNumber) return;
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${waitingOrderNumber}/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const paid = ["PAYEE", "EN_PREPARATION", "EXPEDIEE", "LIVREE"].includes(
+          data.status,
+        );
+        const failed = data.status === "ANNULEE";
+
+        if (paid || failed) {
+          clearInterval(pollRef.current);
+          popupRef.current?.close();
+          window.location.href = `/checkout/confirmation?order=${waitingOrderNumber}`;
+        }
+      } catch {
+        // silencieux : on retente au prochain intervalle
+      }
+    }, 3000);
+
+    return () => clearInterval(pollRef.current);
+  }, [waitingOrderNumber]);
 
   if (items.length === 0) {
     return (
@@ -335,13 +354,16 @@ export default function CheckoutPage() {
               submitting ||
               quoteLoading ||
               !quote ||
-              quote.unavailable?.length > 0
+              quote.unavailable?.length > 0 ||
+              !!waitingOrderNumber
             }
             className="w-full rounded-lg bg-mechanic-500 py-3 font-medium text-white hover:bg-mechanic-600 disabled:opacity-60"
           >
-            {submitting
-              ? "Redirection vers le paiement..."
-              : "Payer maintenant"}
+            {waitingOrderNumber
+              ? "En attente du paiement dans l'autre onglet..."
+              : submitting
+                ? "Création de la commande..."
+                : "Payer maintenant"}
           </button>
         </form>
       </div>
