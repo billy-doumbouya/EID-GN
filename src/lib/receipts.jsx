@@ -8,8 +8,16 @@ const styles = StyleSheet.create({
   header: { fontSize: 18, marginBottom: 4, color: "#1A2332" },
   subheader: { fontSize: 9, marginBottom: 16, color: "#666" },
   section: { marginBottom: 12 },
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  divider: { borderBottomWidth: 1, borderBottomColor: "#e5e5e0", marginVertical: 8 },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e5e0",
+    marginVertical: 8,
+  },
   total: { fontSize: 14, marginTop: 8, color: "#EA580C" },
 });
 
@@ -65,7 +73,9 @@ function ReceiptDocument({ order }) {
 
         <View style={styles.row}>
           <Text>Sous-total</Text>
-          <Text>{formatGNF(order.subtotal)}</Text>
+          <Text>
+            {formatGNF(Number(order.total) - Number(order.deliveryFee))}
+          </Text>
         </View>
         {Number(order.deliveryFee) > 0 && (
           <View style={styles.row}>
@@ -86,11 +96,16 @@ export async function generateAndUploadReceipt(order) {
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
-        { resource_type: "raw", folder: "receipts", public_id: order.orderNumber },
+        {
+          resource_type: "raw",
+          folder: "receipts",
+          public_id: order.orderNumber,
+          format: "pdf",
+        },
         (error, result) => {
           if (error) reject(error);
           else resolve(result.secure_url);
-        }
+        },
       )
       .end(buffer);
   });

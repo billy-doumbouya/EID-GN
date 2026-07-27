@@ -53,11 +53,11 @@ export default async function AdminSettingsPage() {
     cloudinary:
       !!process.env.CLOUDINARY_CLOUD_NAME && !!process.env.CLOUDINARY_API_KEY,
     lengopay: !!process.env.LENGOPAY_API_KEY,
-    djomy: !!process.env.DJOMY_API_KEY,
+    djomy: !!process.env.DJOMY_CLIENT_SECRET,
     sheets: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    email: !!process.env.BREVO_API_KEY,
+    email: !!process.env.SMTP_USER,
     whatsapp: !!process.env.TWILIO_ACCOUNT_SID,
-    anthropic: !!process.env.ANTHROPIC_API_KEY,
+    gemini: !!process.env.GEMINI_API_KEY,
   };
 
   const productCount = await prisma.product.count();
@@ -286,7 +286,7 @@ export default async function AdminSettingsPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-navy-900">
-                  Chatbot Anthropic
+                  Chatbot Assistant
                 </h3>
                 <p className="mt-1 text-sm text-navy-800/60">
                   IA avec function calling connecte a la DB
@@ -294,14 +294,14 @@ export default async function AdminSettingsPage() {
               </div>
             </div>
             <StatusBadge
-              isConfigured={integrations.anthropic}
+              isConfigured={integrations.gemini}
               label="Configure"
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
+      {/* <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
         <div className="flex gap-4">
           <AlertCircle
             size={24}
@@ -332,7 +332,7 @@ export default async function AdminSettingsPage() {
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

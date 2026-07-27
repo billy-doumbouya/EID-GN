@@ -84,7 +84,7 @@ async function executeTool(name, input) {
         ],
       },
       take: 5,
-      select: { id: true, name: true, price: true, stock: true, sku: true },
+      select: { id: true, name: true, priceDetail: true, stock: true, sku: true },
     });
     return { products };
   }

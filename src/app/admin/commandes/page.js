@@ -1,36 +1,20 @@
 // src/app/(admin)/admin/commandes/page.js
 import { prisma } from "@/lib/prisma";
+import { StatusControl } from "./StatusControl";
 
 export const metadata = { title: "Commandes" };
 
-const STATUS_CONFIG = {
-  EN_ATTENTE: { label: "En attente", style: "bg-amber-500/10 text-amber-500" },
-  PAYEE: { label: "Payee", style: "bg-success/10 text-success" },
-  EN_PREPARATION: {
-    label: "En preparation",
-    style: "bg-mechanic-500/10 text-mechanic-500",
-  },
-  EXPEDIEE: {
-    label: "Expediee",
-    style: "bg-mechanic-500/10 text-mechanic-500",
-  },
-  LIVREE: { label: "Livree", style: "bg-success/10 text-success" },
-  ANNULEE: { label: "Annulee", style: "bg-danger/10 text-danger" },
+// Labels seuls, pour peupler le filtre deroulant. Les styles/couleurs par
+// statut vivent maintenant dans StatusControl.jsx, pas besoin de les
+// dupliquer ici puisque ce select n'affiche que du texte.
+const STATUS_FILTER_LABELS = {
+  EN_ATTENTE: "En attente",
+  PAYEE: "Payee",
+  EN_PREPARATION: "En preparation",
+  EXPEDIEE: "Expediee",
+  LIVREE: "Livree",
+  ANNULEE: "Annulee",
 };
-
-function StatusBadge({ status }) {
-  const config = STATUS_CONFIG[status] || {
-    label: status,
-    style: "bg-navy-800/10 text-navy-800/60",
-  };
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-xs font-medium ${config.style}`}
-    >
-      {config.label}
-    </span>
-  );
-}
 
 function getCustomerName(order) {
   return order.user?.fullName || order.guestFullName || "Client anonyme";
@@ -86,7 +70,7 @@ export default async function AdminOrdersPage({ searchParams }) {
             className="rounded-lg border border-navy-800/15 bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="">Tous statuts</option>
-            {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
+            {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -140,7 +124,10 @@ export default async function AdminOrdersPage({ searchParams }) {
                       {Number(o.total).toLocaleString("fr-FR")} GNF
                     </td>
                     <td className="px-4 py-2">
-                      <StatusBadge status={o.status} />
+                      <StatusControl
+                        orderNumber={o.orderNumber}
+                        status={o.status}
+                      />
                     </td>
                     <td className="px-4 py-2 text-navy-800/50">
                       {new Date(o.createdAt).toLocaleDateString("fr-FR")}
@@ -165,7 +152,10 @@ export default async function AdminOrdersPage({ searchParams }) {
                       {getCustomerName(o)}
                     </p>
                   </div>
-                  <StatusBadge status={o.status} />
+                  <StatusControl
+                    orderNumber={o.orderNumber}
+                    status={o.status}
+                  />
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-navy-800/60">
                   <span>

@@ -16,7 +16,7 @@ export default async function NewPromotionPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <h1 className="font-display text-2xl font-semibold text-navy-900">
         Nouvelle promotion
       </h1>

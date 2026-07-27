@@ -226,6 +226,9 @@ model Order {
   items           OrderItem[]
   payments        Payment[]
   receipt         Receipt?
+  
+  deliveryToken       String?   @unique
+  deliveryConfirmedAt DateTime?
 
   @@index([status])
   @@index([createdAt])

@@ -11,6 +11,7 @@ import { Autoplay, Pagination, EffectFade } from "swiper/modules";
 import { useCartStore } from "@/lib/cartStore";
 import { cn } from "@/lib/utiles";
 import { computePrice } from "@/lib/pricing/computePrice";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -59,7 +60,7 @@ function getCardImages(product) {
   return [primary, ...sorted];
 }
 
-export function ProductCard({ product }) {
+export function ProductCard({ product, isFavorited = false }) {
   const addItem = useCartStore((s) => s.addItem);
   const status = getStockStatus(product);
   const isOutOfStock = status === "out";
@@ -161,6 +162,14 @@ export function ProductCard({ product }) {
             -{Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}%
           </span>
         )}
+
+        {/* Bouton favori */}
+        <div className="absolute right-2.5 top-2.5 z-10">
+          <FavoriteButton
+            productId={product.id}
+            initialFavorited={isFavorited}
+          />
+        </div>
       </Link>
 
       <div className="flex flex-1 flex-col p-4">

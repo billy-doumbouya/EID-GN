@@ -1,4 +1,3 @@
-// src/components/CatalogGrid.jsx
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +14,12 @@ async function fetchProducts(params) {
   );
   const res = await fetch(`/api/products?${query.toString()}`);
   if (!res.ok) throw new Error("Impossible de charger le catalogue");
+  return res.json();
+}
+
+async function fetchFavoriteIds() {
+  const res = await fetch("/api/favorites/ids");
+  if (!res.ok) return { productIds: [] };
   return res.json();
 }
 
@@ -46,6 +51,16 @@ export function CatalogGrid({ type, title, categories = [] }) {
     queryFn: () =>
       fetchProducts({ type, category: categorySlug, search, sort }),
   });
+
+  // Requete unique et separee : la liste des favoris ne depend pas des
+  // filtres du catalogue (categorie/recherche/tri), donc pas de raison
+  // de la refetcher a chaque changement de filtre.
+  const { data: favoritesData } = useQuery({
+    queryKey: ["favorite-ids"],
+    queryFn: fetchFavoriteIds,
+    staleTime: 60_000,
+  });
+  const favoriteIds = new Set(favoritesData?.productIds ?? []);
 
   return (
     <>
@@ -97,16 +112,12 @@ export function CatalogGrid({ type, title, categories = [] }) {
 
         {!isLoading && data?.products?.length > 0 && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {/*
-              On passe le produit tel que renvoye par /api/products, sans le
-              remapper : il contient deja images[] (avec fallback Unsplash),
-              discounts (filtrees actives) et category.discounts. ProductCard
-              se charge du calcul de prix (computePrice) et du choix de
-              l'image de couverture (isPrimary).
-            */}
             {data.products.map((product, i) => (
               <Reveal key={product.id} delay={Math.min((i % 4) * 0.05, 0.15)}>
-                <ProductCard product={product} />
+                <ProductCard
+                  product={product}
+                  isFavorited={favoriteIds.has(product.id)}
+                />
               </Reveal>
             ))}
           </div>

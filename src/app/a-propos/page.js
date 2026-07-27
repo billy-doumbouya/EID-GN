@@ -1,11 +1,12 @@
 // src/app/(marketing)/about/page.js
 
+import Image from "next/image";
+import { GuineaDeliveryMap } from "@/components/GuineaDeliveryMap";
 import { Reveal } from "@/components/motion/Reveal";
 import { GearPattern } from "@/components/stats/AboutStats/GearPattern";
 import { StatCounter } from "@/components/stats/AboutStats/StatCounter";
 import { ZigzagDivider } from "@/components/ZigzagDivider";
 import { cn } from "@/lib/utiles";
-
 
 export const metadata = { title: "A propos" };
 
@@ -15,12 +16,8 @@ const VALEURS = [
     desc: "Chaque piece est verifiee et filtree par modele exact avant expedition. Fini les erreurs de reference.",
   },
   {
-    titre: "Reactivite Kankan",
-    desc: "Stock local, livraison rapide sur l'ensemble des quartiers couverts et les environs.",
-  },
-  {
-    titre: "Paiement mobile money",
-    desc: "Orange Money et MTN acceptes directement, sans intermediaire ni frais caches.",
+    titre: "Reseau national",
+    desc: "Depuis notre centre de distribution a Kankan, nous livrons desormais les 8 regions du pays.",
   },
   {
     titre: "Service apres-vente",
@@ -47,15 +44,18 @@ const TIMELINE = [
     texte:
       "Digitalisation complete : catalogue en ligne, paiement mobile money, livraison trackee.",
   },
+  {
+    annee: "2026",
+    texte:
+      "Extension de la livraison aux 8 regions de Guinee, depuis notre hub de Kankan.",
+  },
 ];
 
-const ZONES = [
-  "Kankan Centre",
-  "Timbo",
-  "Missira",
-  "Sabalibougou",
-  "Dougouba",
-  "Bordeaux",
+const PAYMENT_METHODS = [
+  { name: "Orange Money", src: "/payment-logo/orange.png" },
+  { name: "MTN MoMo", src: "/payment-logo/mtn.png" },
+  { name: "Moov Money", src: "/payment-logo/moov.png" },
+  { name: "Visa", src: "/payment-logo/visa.png" },
 ];
 
 export default function AboutPage() {
@@ -70,13 +70,12 @@ export default function AboutPage() {
               Depuis 2016 a Kankan
             </p>
             <h1 className="mt-3 font-display text-3xl font-bold leading-tight md:text-5xl">
-              L'atelier qui a grandi{" "}
-              <span className="text-mechanic-400">avec ses clients</span>
+              De l'atelier de Kankan{" "}
+              <span className="text-mechanic-400">a tout le pays</span>
             </h1>
             <p className="mt-4 text-white/70">
-              De la piece detachee filtree au modele pres, jusqu'a la moto
-              livree chez vous : une histoire de confiance construite quartier
-              par quartier a Kankan.
+              Une histoire de confiance nee quartier par quartier a Kankan, qui
+              livre aujourd'hui l'ensemble des regions de Guinee.
             </p>
           </Reveal>
         </div>
@@ -85,7 +84,7 @@ export default function AboutPage() {
         <div className="relative mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-6 px-6 md:grid-cols-4">
           <StatCounter value={9} suffix="+" label="Annees d'activite" />
           <StatCounter value={3200} suffix="+" label="Clients servis" />
-          <StatCounter value={6} label="Quartiers livres" />
+          <StatCounter value={8} label="Regions couvertes" />
           <StatCounter value={48} suffix="h" label="Delai de livraison max" />
         </div>
       </section>
@@ -126,7 +125,7 @@ export default function AboutPage() {
             </h2>
           </Reveal>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {VALEURS.map((v, i) => (
               <Reveal key={v.titre} delay={i * 0.06}>
                 <div
@@ -148,25 +147,60 @@ export default function AboutPage() {
 
       <ZigzagDivider color="var(--color-offwhite-100)" />
 
-      {/* Zones de livraison */}
+      {/* Carte de livraison nationale */}
       <section className="mx-auto max-w-4xl px-6 py-16">
         <Reveal>
           <h2 className="text-center font-display text-2xl font-semibold text-navy-900 md:text-3xl">
-            Zones de livraison couvertes
+            Un reseau qui couvre tout le pays
           </h2>
           <p className="mt-2 text-center text-sm text-navy-800/60">
-            Livraison rapide sur les quartiers suivants a Kankan
+            Depuis notre centre de distribution a Kankan, vers chaque region
+            de Guinee
           </p>
         </Reveal>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {ZONES.map((zone, i) => (
-            <Reveal key={zone} delay={i * 0.05}>
-              <div className="rounded-lg border border-navy-800/10 bg-white px-4 py-3 text-center text-sm font-medium text-navy-900 shadow-sm">
-                {zone}
-              </div>
-            </Reveal>
-          ))}
+        <Reveal delay={0.1}>
+          <div className="mt-10">
+            <GuineaDeliveryMap />
+          </div>
+        </Reveal>
+      </section>
+
+      <ZigzagDivider color="var(--color-navy-900)" flip />
+
+      {/* Moyens de paiement */}
+      <section className="bg-navy-900 py-16 text-white">
+        <div className="mx-auto max-w-3xl px-6">
+          <Reveal>
+            <h2 className="text-center font-display text-2xl font-semibold md:text-3xl">
+              Payez en toute confiance
+            </h2>
+            <p className="mt-2 text-center text-sm text-white/60">
+              Mobile money et carte bancaire, sans intermediaire ni frais
+              caches
+            </p>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {PAYMENT_METHODS.map((method) => (
+                <div
+                  key={method.name}
+                  className="flex h-16 items-center justify-center rounded-xl border border-white/10 bg-white/5 p-3"
+                >
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={method.src}
+                      alt={method.name}
+                      fill
+                      className="object-contain"
+                      sizes="120px"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
     </>
