@@ -213,6 +213,7 @@ model Order {
   guestPhone      String?
   guestEmail      String?
   customerTypeAtOrder CustomerType @default(DETAIL) // Sauvegarde le statut du client au moment de l'achat
+  abandonedReminderSentAt DateTime?
 
   status          OrderStatus @default(EN_ATTENTE)
   deliveryFee     Decimal     @db.Decimal(12, 2) @default(0)

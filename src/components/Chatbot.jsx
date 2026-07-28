@@ -6,9 +6,6 @@ import { X, Send, Bike } from "lucide-react";
 import { LottiePlayer } from "@/components/LottiePlayer";
 import LottiAnimation from "@/components/lottie/LottiAnimation.json";
 
-// Widget de chat - Framer Motion ici car c'est une interaction (ouverture/fermeture),
-// pas un reveal au scroll (reserve a AOS sur les pages marketing).
-
 const SUGGESTIONS = [
   "Motos disponibles en stock",
   "Suivre ma commande",
@@ -30,6 +27,11 @@ export function Chatbot() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Identifiant stable pour toute la duree de vie du widget (persiste entre
+  // ouverture/fermeture tant que la page n'est pas rechargee), utilise pour
+  // regrouper les messages d'une meme conversation en base (analytics).
+  const [sessionId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -63,6 +65,7 @@ export function Chatbot() {
             role: m.role,
             content: m.content,
           })),
+          sessionId,
         }),
       });
       const data = await res.json();
@@ -93,7 +96,6 @@ export function Chatbot() {
 
   return (
     <>
-      {/* Positionne au-dessus du widget WhatsApp (bottom-6 right-6) pour ne pas les superposer */}
       <div className="fixed bottom-24 right-6 z-50">
         {!hasOpened && (
           <span className="absolute inset-0 animate-ping rounded-full bg-mechanic-500/40" />
@@ -137,7 +139,6 @@ export function Chatbot() {
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="fixed bottom-40 right-6 z-50 flex h-[30rem] w-[22rem] flex-col overflow-hidden rounded-2xl border border-navy-900/10 bg-white/95 shadow-2xl shadow-navy-900/20 backdrop-blur-xl sm:w-96"
           >
-            {/* Header - livree diagonale, signature visuelle du garage */}
             <div className="relative overflow-hidden bg-navy-900 px-4 py-3.5">
               <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-24 rotate-12 bg-mechanic-500/90" />
               <div className="pointer-events-none absolute -right-2 top-8 h-3 w-28 -rotate-[20deg] bg-mechanic-500/40" />
@@ -161,7 +162,6 @@ export function Chatbot() {
               </div>
             </div>
 
-            {/* Messages */}
             <div
               ref={scrollRef}
               className="flex-1 space-y-3 overflow-y-auto p-3.5 [scrollbar-width:thin] [scrollbar-color:theme(colors.navy.900/15)_transparent]"
@@ -218,7 +218,6 @@ export function Chatbot() {
                 </motion.div>
               )}
 
-              {/* Questions predefinies - visibles au premier contact uniquement */}
               <AnimatePresence>
                 {showSuggestions && (
                   <motion.div
@@ -246,7 +245,6 @@ export function Chatbot() {
               </AnimatePresence>
             </div>
 
-            {/* Saisie */}
             <form
               onSubmit={sendMessage}
               className="flex items-center gap-2 border-t border-navy-900/10 bg-white p-2.5"

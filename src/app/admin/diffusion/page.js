@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/diffusion/page.js
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Drawer } from "vaul";
 import {
@@ -10,11 +10,8 @@ import {
   AlertTriangle,
   Send,
   Info,
-  CheckCircle2,
-  XCircle,
+  Loader2,
 } from "lucide-react";
-
-const SID_PATTERN = /^HX[a-f0-9]{32}$/i;
 
 function ConfirmSendDrawer({
   open,
@@ -58,25 +55,7 @@ function ConfirmSendDrawer({
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 animate-spin text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Envoi en cours...
                   </span>
                 ) : (
@@ -99,14 +78,23 @@ function ConfirmSendDrawer({
 
 export default function DiffusionPage() {
   const [emailForm, setEmailForm] = useState({ subject: "", html: "" });
-  const [waForm, setWaForm] = useState({ contentSid: "", variables: "" });
+  const [waForm, setWaForm] = useState({ templateId: "", variables: "" });
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [loadingWa, setLoadingWa] = useState(false);
   const [confirmEmailOpen, setConfirmEmailOpen] = useState(false);
   const [confirmWaOpen, setConfirmWaOpen] = useState(false);
 
-  const sidValid =
-    waForm.contentSid === "" || SID_PATTERN.test(waForm.contentSid.trim());
+  useEffect(() => {
+    fetch("/api/admin/whatsapp-templates")
+      .then((res) => res.json())
+      .then((data) => setTemplates(data.templates || []))
+      .catch(() => toast.error("Impossible de charger les templates WhatsApp"))
+      .finally(() => setLoadingTemplates(false));
+  }, []);
+
+  const selectedTemplate = templates.find((t) => t.id === waForm.templateId);
 
   async function sendEmailBroadcast() {
     setLoadingEmail(true);
@@ -142,14 +130,14 @@ export default function DiffusionPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contentSid: waForm.contentSid,
+          templateId: waForm.templateId,
           contentVariables,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success(`Envoyé à ${data.sent} client(s), ${data.failed} échec(s)`);
-      setWaForm({ contentSid: "", variables: "" });
+      setWaForm({ templateId: "", variables: "" });
       setConfirmWaOpen(false);
     } catch (err) {
       toast.error(
@@ -162,7 +150,6 @@ export default function DiffusionPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-12">
-      {/* En-tête de page */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-navy-900">
           Campagnes de Diffusion
@@ -174,9 +161,7 @@ export default function DiffusionPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* =========================================================================
-            CARTE EMAIL 
-            ========================================================================= */}
+        {/* CARTE EMAIL */}
         <div className="flex flex-col overflow-hidden rounded-2xl border border-navy-800/10 bg-white shadow-sm transition-shadow hover:shadow-md">
           <div className="border-b border-navy-800/5 bg-navy-50/50 px-6 py-5">
             <div className="flex items-center gap-3">
@@ -244,9 +229,7 @@ export default function DiffusionPage() {
           </form>
         </div>
 
-        {/* =========================================================================
-            CARTE WHATSAPP 
-            ========================================================================= */}
+        {/* CARTE WHATSAPP */}
         <div className="flex flex-col overflow-hidden rounded-2xl border border-navy-800/10 bg-white shadow-sm transition-shadow hover:shadow-md">
           <div className="border-b border-navy-800/5 bg-navy-50/50 px-6 py-5">
             <div className="flex items-center gap-3">
@@ -267,67 +250,56 @@ export default function DiffusionPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!sidValid) {
-                toast.error(
-                  "Le Content SID doit commencer par HX suivi de 32 caractères.",
-                );
-                return;
-              }
               setConfirmWaOpen(true);
             }}
             className="flex flex-1 flex-col p-6 space-y-6"
           >
-            {/* Boîte d'information Twilio */}
             <div className="flex items-start gap-3 rounded-xl border border-blue-200/60 bg-blue-50/50 p-4">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
               <div className="text-xs text-blue-900/80">
-                <p className="font-medium">
-                  Nécessite un Content Template approuvé
-                </p>
+                <p className="font-medium">Modèles pré-approuvés uniquement</p>
                 <p className="mt-1">
-                  Créez-le via la Twilio Console (Content Template Builder). Le
-                  SID de votre modèle est requis ci-dessous.
+                  Choisissez un message parmi ceux déjà validés par WhatsApp.
+                  Contactez le développeur pour en ajouter un nouveau.
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-navy-900">
-                    Content SID Twilio
-                  </label>
-                  {waForm.contentSid &&
-                    (sidValid ? (
-                      <CheckCircle2 size={14} className="text-emerald-500" />
-                    ) : (
-                      <XCircle size={14} className="text-danger" />
-                    ))}
-                </div>
-                <input
-                  type="text"
+                <label className="text-sm font-medium text-navy-900">
+                  Message à envoyer
+                </label>
+                <select
                   required
-                  placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={waForm.contentSid}
+                  value={waForm.templateId}
                   onChange={(e) =>
-                    setWaForm({ ...waForm, contentSid: e.target.value })
+                    setWaForm({ ...waForm, templateId: e.target.value })
                   }
-                  className={`w-full font-mono rounded-xl border bg-navy-50/30 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-4 ${
-                    sidValid
-                      ? "border-navy-800/15 focus:border-emerald-500 focus:ring-emerald-500/10"
-                      : "border-danger text-danger focus:border-danger focus:ring-danger/10"
-                  }`}
-                />
-                {!sidValid && (
+                  disabled={loadingTemplates}
+                  className="w-full rounded-xl border border-navy-800/15 bg-navy-50/30 px-4 py-2.5 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 disabled:opacity-50"
+                >
+                  <option value="">
+                    {loadingTemplates
+                      ? "Chargement..."
+                      : "Choisissez un message"}
+                  </option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                {!loadingTemplates && templates.length === 0 && (
                   <p className="text-[11px] font-medium text-danger">
-                    Format invalide : HX suivi de 32 caractères hexadécimaux.
+                    Aucun message disponible pour le moment.
                   </p>
                 )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-navy-900">
-                  Variables du Template
+                  Informations à inclure
                 </label>
                 <input
                   type="text"
@@ -339,15 +311,15 @@ export default function DiffusionPage() {
                   className="w-full rounded-xl border border-navy-800/15 bg-navy-50/30 px-4 py-2.5 text-sm outline-none transition-all placeholder:text-navy-800/30 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                 />
                 <p className="text-[11px] text-navy-800/50">
-                  Séparez chaque variable par une virgule (ex: Variable1,
-                  Variable2).
+                  Séparez chaque information par une virgule, dans l'ordre où
+                  elles apparaissent dans le message.
                 </p>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loadingWa || !waForm.contentSid || !sidValid}
+              disabled={loadingWa || !waForm.templateId}
               className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-500/20 disabled:opacity-50 active:scale-[0.98]"
             >
               <Send size={16} />
@@ -357,14 +329,6 @@ export default function DiffusionPage() {
         </div>
       </div>
 
-      <ConfirmEmailDrawer />
-      <ConfirmWaDrawer />
-    </div>
-  );
-
-  // Pour garder le JSX principal propre, vous pouvez encapsuler vos Drawers ici :
-  function ConfirmEmailDrawer() {
-    return (
       <ConfirmSendDrawer
         open={confirmEmailOpen}
         onOpenChange={setConfirmEmailOpen}
@@ -374,20 +338,16 @@ export default function DiffusionPage() {
         loading={loadingEmail}
         tone="mechanic"
       />
-    );
-  }
 
-  function ConfirmWaDrawer() {
-    return (
       <ConfirmSendDrawer
         open={confirmWaOpen}
         onOpenChange={setConfirmWaOpen}
         title="Confirmer l'envoi WhatsApp"
-        description="Ce message sera envoyé immédiatement à tous les clients via le template Twilio renseigné. Assurez-vous d'avoir les crédits nécessaires. Cette action est irréversible."
+        description={`Le message "${selectedTemplate?.label || ""}" sera envoyé immédiatement à tous les clients opt-in via WhatsApp. Cette action est irréversible.`}
         onConfirm={sendWhatsappBroadcast}
         loading={loadingWa}
         tone="emerald"
       />
-    );
-  }
+    </div>
+  );
 }
