@@ -1,5 +1,6 @@
 // src/components/homePage/CategoryCard.jsx
 "use client";
+
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Bike, Truck, Wrench, ArrowUpRight } from "lucide-react";
@@ -9,8 +10,8 @@ const iconMap = { Bike, Truck, Wrench };
 export function CategoryCard({ href, label, desc, icon, code, delay = 0 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-100, 100], [8, -8]);
-  const rotateY = useTransform(x, [-100, 100], [-8, 8]);
+  const rotateX = useTransform(y, [-100, 100], [6, -6]);
+  const rotateY = useTransform(x, [-100, 100], [-6, 6]);
   const springRotateX = useSpring(rotateX, { damping: 20, stiffness: 300 });
   const springRotateY = useSpring(rotateY, { damping: 20, stiffness: 300 });
 
@@ -35,29 +36,39 @@ export function CategoryCard({ href, label, desc, icon, code, delay = 0 }) {
       transition={{ delay, duration: 0.5 }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{ rotateX: springRotateX, rotateY: springRotateY, transformStyle: "preserve-3d" }}
+      style={{
+        rotateX: springRotateX,
+        rotateY: springRotateY,
+        transformStyle: "preserve-3d",
+      }}
     >
       <Link href={href} className="group block h-full">
-        <div className="relative h-full overflow-hidden rounded-xl border border-navy-800/10 bg-white p-6 transition-shadow duration-300 hover:shadow-lg hover:shadow-navy-900/5">
-          {/* Coins de reperage, style plan technique */}
-          <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-navy-800/15" />
-          <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-navy-800/15" />
-
-          <div className="flex items-start justify-between">
-            <span className="font-mono text-[11px] tracking-widest text-navy-800/35">
+        <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl bg-[#e6eef8] p-6 shadow-[10px_10px_20px_#c3cad3,-10px_-10px_20px_#ffffff] transition-all duration-300 hover:shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+          {/* EN-TÊTE : CODE & FLÈCHE D'ACTION */}
+          <div className="flex items-center justify-between">
+            <span className="rounded-xl bg-[#e6eef8] px-2.5 py-1 text-[11px] font-mono font-bold tracking-wider text-slate-500 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
               {code}
             </span>
-            <ArrowUpRight className="h-4 w-4 text-navy-800/20 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-mechanic-500" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-400 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] transition-all duration-300 group-hover:text-mechanic-500 group-hover:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+              <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </div>
           </div>
 
-          {Icon && (
-            <Icon className="mt-6 h-7 w-7 text-mechanic-500" strokeWidth={1.75} />
-          )}
+          {/* CONTENU : ICÔNE, TITRE ET DESCRIPTION */}
+          <div className="mt-6">
+            {Icon && (
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+                <Icon className="h-6 w-6 text-mechanic-500" strokeWidth={1.8} />
+              </div>
+            )}
 
-          <h3 className="mt-4 font-display text-lg font-semibold text-navy-900">
-            {label}
-          </h3>
-          <p className="mt-1 text-sm text-navy-800/55">{desc}</p>
+            <h3 className="font-display text-lg font-bold text-slate-800 transition-colors duration-200 group-hover:text-mechanic-500">
+              {label}
+            </h3>
+            <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">
+              {desc}
+            </p>
+          </div>
         </div>
       </Link>
     </motion.div>

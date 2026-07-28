@@ -17,24 +17,27 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 
-const stockLabel = cva("text-[11px] font-semibold tracking-wide uppercase", {
-  variants: {
-    status: {
-      out: "text-rose-600 bg-rose-50 px-2 py-0.5 rounded",
-      low: "text-amber-600 bg-amber-50 px-2 py-0.5 rounded",
-      in: "text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded",
-    },
-  },
-});
-
-const addButton = cva(
-  "mt-3 w-full rounded-lg py-2.5 text-xs font-semibold uppercase tracking-wider transition-all duration-200 active:scale-[0.98]",
+const stockLabel = cva(
+  "inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-xl shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]",
   {
     variants: {
       status: {
-        out: "cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200",
-        low: "bg-navy-900 text-white hover:bg-mechanic-500 shadow-sm hover:shadow",
-        in: "bg-navy-900 text-white hover:bg-mechanic-500 shadow-sm hover:shadow",
+        out: "text-rose-600 bg-[#e6eef8]",
+        low: "text-amber-600 bg-[#e6eef8]",
+        in: "text-emerald-600 bg-[#e6eef8]",
+      },
+    },
+  },
+);
+
+const addButton = cva(
+  "mt-3 w-full rounded-2xl py-3 text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98]",
+  {
+    variants: {
+      status: {
+        out: "cursor-not-allowed bg-[#e6eef8] text-slate-400 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] opacity-70",
+        low: "bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]",
+        in: "bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]",
       },
     },
   },
@@ -88,7 +91,6 @@ export function ProductCard({ product, isFavorited = false }) {
     toast.success(`${product.name} ajouté au panier`);
   }
 
-  // Activer l'autoplay uniquement au survol de cette carte spécifique
   function handleMouseEnter() {
     if (!swiperRef.current) return;
     swiperRef.current.autoplay.start();
@@ -103,14 +105,15 @@ export function ProductCard({ product, isFavorited = false }) {
   return (
     <div
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white",
-        "transition-all duration-300 ease-out",
-        "hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-navy-900/5",
+        "group relative flex flex-col overflow-hidden rounded-3xl bg-[#e6eef8] p-3.5",
+        "shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]",
+        "transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff]",
       )}
     >
+      {/* ZONE IMAGE / CARROUSEL */}
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-slate-50"
+        className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-[#e6eef8] shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff]"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -121,9 +124,9 @@ export function ProductCard({ product, isFavorited = false }) {
             fadeEffect={{ crossFade: true }}
             onSwiper={(s) => (swiperRef.current = s)}
             autoplay={{
-              delay: 1500, // Délai fixé à 1.5s
+              delay: 1500,
               disableOnInteraction: false,
-              enabled: false, // Désactivé par défaut au démarrage
+              enabled: false,
             }}
             loop
             pagination={{ clickable: true }}
@@ -156,9 +159,9 @@ export function ProductCard({ product, isFavorited = false }) {
           </div>
         )}
 
-        {/* Badge réduction */}
+        {/* Badge réduction Soft UI */}
         {compareAtPrice && (
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-rose-600 px-2 py-1 text-[10px] font-bold tracking-wider uppercase text-white shadow-sm">
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-xl bg-[#e6eef8] px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase text-rose-600 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff]">
             -{Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}%
           </span>
         )}
@@ -172,7 +175,8 @@ export function ProductCard({ product, isFavorited = false }) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
+      {/* CONTENU & INFORMATIONS */}
+      <div className="flex flex-1 flex-col pt-3.5 px-1">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className={stockLabel({ status })}>
             {status === "out" && "Rupture"}
@@ -183,18 +187,19 @@ export function ProductCard({ product, isFavorited = false }) {
 
         <Link
           href={`/products/${product.slug}`}
-          className="text-sm font-semibold text-navy-900 transition-colors group-hover:text-mechanic-500 line-clamp-2"
+          className="text-xs font-bold text-slate-800 transition-colors group-hover:text-mechanic-500 line-clamp-2 leading-relaxed"
         >
           {product.name}
         </Link>
 
+        {/* PIED DU CARD : PRIX ET BOUTON */}
         <div className="mt-auto pt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-base font-bold text-navy-900">
+            <span className="text-sm font-bold text-slate-900">
               {price.toLocaleString("fr-FR")} GNF
             </span>
             {compareAtPrice && (
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-[11px] text-slate-400 line-through font-medium">
                 {compareAtPrice.toLocaleString("fr-FR")} GNF
               </span>
             )}
@@ -222,16 +227,18 @@ export function ProductCard({ product, isFavorited = false }) {
         .product-card-swiper .swiper-pagination-bullet {
           width: 6px;
           height: 6px;
-          background: #ffffff;
-          opacity: 0.6;
+          background: #e6eef8;
+          opacity: 0.7;
           margin: 0 3px !important;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          box-shadow:
+            1px 1px 3px #c3cad3,
+            -1px -1px 3px #ffffff;
         }
         .product-card-swiper .swiper-pagination-bullet-active {
           opacity: 1;
           background: #ea580c;
           width: 14px;
-          border-radius: 4px;
+          border-radius: 6px;
         }
       `}</style>
     </div>

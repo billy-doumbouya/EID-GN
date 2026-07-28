@@ -12,10 +12,11 @@ import {
   Package,
   Banknote,
   ShieldCheck,
+  ShoppingBag,
 } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 
- const PAYMENT_METHODS = [
+const PAYMENT_METHODS = [
   {
     id: "orange-money",
     label: "Orange Money",
@@ -46,8 +47,9 @@ import { useCartStore } from "@/lib/cartStore";
     id: "paycard",
     label: "PayCard",
     logoUrl: "/payment-logo/paycard.png",
-  }
+  },
 ];
+
 export default function CartPage() {
   const { items, updateQuantity, removeItem } = useCartStore();
 
@@ -97,16 +99,31 @@ export default function CartPage() {
     };
   }, [itemsKey]);
 
+  /* PANIER VIDE NEUMORPHIQUE */
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <p className="text-navy-800/60">Votre panier est vide.</p>
-        <Link
-          href="/"
-          className="mt-3 inline-block font-medium text-mechanic-500 hover:underline"
-        >
-          Parcourir le catalogue
-        </Link>
+      <div className="min-h-[70vh] bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
+        <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] space-y-6">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-slate-400 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
+            <ShoppingBag size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-slate-800">
+              Votre panier est vide
+            </h1>
+            <p className="text-xs font-medium text-slate-500">
+              Découvrez nos articles et ajoutez-les à votre panier.
+            </p>
+          </div>
+
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-[#e6eef8] py-3.5 text-xs font-bold text-mechanic-500 transition-all duration-200 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:text-mechanic-600 hover:shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff]"
+          >
+            Parcourir le catalogue
+          </Link>
+        </div>
       </div>
     );
   }
@@ -119,193 +136,203 @@ export default function CartPage() {
   );
   const showSkeleton = loading && !quote;
 
- 
-
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">
-      <h1 className="mb-6 font-display text-2xl font-semibold text-navy-900">
-        Mon panier
-      </h1>
+    <div className="min-h-screen bg-[#e6eef8] py-10 px-4 md:px-6">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-6 font-display text-2xl font-bold text-slate-800">
+          Mon panier
+        </h1>
 
-      {error && (
-        <div className="mb-4 rounded-lg bg-danger/10 p-3 text-sm text-danger">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-6 rounded-2xl bg-[#e6eef8] p-4 text-xs font-semibold text-rose-500 shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] flex items-center gap-2">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
-      {showSkeleton ? (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item.productId}
-              className="flex items-center gap-4 rounded-xl border border-navy-800/10 bg-white p-3"
-            >
-              <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-offwhite-200" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-2/3 animate-pulse rounded bg-offwhite-200" />
-                <div className="h-3 w-1/4 animate-pulse rounded bg-offwhite-200" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {items.map((item) => {
-            const line = linesByProductId.get(item.productId);
-            const unavailable = unavailableByProductId.get(item.productId);
-            const imageUrl = line?.image || item.image;
-
-            return (
+        {/* SKELETON LOADING */}
+        {showSkeleton ? (
+          <div className="space-y-4">
+            {items.map((item) => (
               <div
                 key={item.productId}
-                className={`flex items-center gap-4 rounded-xl border bg-white p-3 ${
-                  unavailable
-                    ? "border-amber-400/50 bg-amber-50/40"
-                    : "border-navy-800/10"
-                }`}
+                className="flex items-center gap-4 rounded-2xl bg-[#e6eef8] p-4 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]"
               >
-                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-offwhite-200">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={line?.name || item.name || "Produit"}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <Package className="h-6 w-6 text-navy-800/20" />
-                  )}
+                <div className="h-16 w-16 shrink-0 animate-pulse rounded-xl bg-[#d5deea]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-[#d5deea]" />
+                  <div className="h-3 w-1/4 animate-pulse rounded bg-[#d5deea]" />
                 </div>
-
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-navy-900">
-                    {line?.name || item.name}
-                  </p>
-
-                  {line && (
-                    <div className="mt-0.5 flex flex-wrap items-baseline gap-2">
-                      <p className="text-sm font-semibold text-mechanic-500">
-                        {line.unitPrice.toLocaleString("fr-FR")} GNF
-                      </p>
-                      {line.discountName && (
-                        <p className="text-xs text-navy-800/40 line-through">
-                          {line.originalPrice.toLocaleString("fr-FR")} GNF
-                        </p>
-                      )}
-                      {line.isGrosPricing && (
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-                          Tarif gros
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {unavailable && (
-                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-600">
-                      <AlertTriangle size={12} />
-                      {unavailable.reason}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.productId, item.quantity - 1)
-                    }
-                    className="rounded-full border border-navy-800/15 p-1 hover:bg-offwhite-200 disabled:opacity-30"
-                    disabled={item.quantity <= 1}
-                    aria-label="Diminuer"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-6 text-center text-sm font-medium">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.productId, item.quantity + 1)
-                    }
-                    className="rounded-full border border-navy-800/15 p-1 hover:bg-offwhite-200"
-                    aria-label="Augmenter"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => removeItem(item.productId)}
-                  className="p-1 text-navy-800/40 transition-colors hover:text-danger"
-                  aria-label="Retirer"
-                >
-                  <Trash2 size={18} />
-                </button>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : (
+          /* LISTE DES ARTICLES */
+          <div className="space-y-4">
+            {items.map((item) => {
+              const line = linesByProductId.get(item.productId);
+              const unavailable = unavailableByProductId.get(item.productId);
+              const imageUrl = line?.image || item.image;
 
-      {/* Sous-total */}
-      <div className="mt-6 flex items-center justify-between rounded-xl bg-navy-900 p-4 text-white">
-        <span className="font-medium">Sous-total</span>
-        <span className="flex items-center gap-2 text-lg font-semibold text-mechanic-400">
-          {loading && quote && <Loader size={16} className="animate-spin" />}
-          {(quote?.subtotal ?? 0).toLocaleString("fr-FR")} GNF
-        </span>
-      </div>
+              return (
+                <div
+                  key={item.productId}
+                  className={`flex items-center gap-4 rounded-2xl bg-[#e6eef8] p-4 transition-all ${
+                    unavailable
+                      ? "shadow-[inset_4px_4px_8px_#e5cfb3,inset_-4px_-4px_8px_#ffffff]"
+                      : "shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]"
+                  }`}
+                >
+                  {/* IMAGE AVEC EFFET CREUSÉ */}
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={line?.name || item.name || "Produit"}
+                        fill
+                        className="object-cover p-1 rounded-xl"
+                      />
+                    ) : (
+                      <Package className="h-6 w-6 text-slate-400" />
+                    )}
+                  </div>
 
-      {quote?.unavailable?.length > 0 && (
-        <p className="mt-2 text-xs text-amber-600">
-          Certains articles ne sont pas inclus dans le sous-total — ajustez ou
-          retirez-les ci-dessus pour continuer.
-        </p>
-      )}
+                  {/* INFO PRODUIT */}
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-slate-800">
+                      {line?.name || item.name}
+                    </p>
 
-      <Link
-        href="/checkout"
-        aria-disabled={loading || quote?.unavailable?.length > 0}
-        className={`mt-4 block rounded-lg py-3 text-center font-medium text-white transition-colors ${
-          loading || quote?.unavailable?.length > 0
-            ? "pointer-events-none bg-mechanic-500/50"
-            : "bg-mechanic-500 hover:bg-mechanic-600"
-        }`}
-      >
-        Passer commande
-      </Link>
+                    {line && (
+                      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+                        <p className="text-xs font-bold text-mechanic-500">
+                          {line.unitPrice.toLocaleString("fr-FR")} GNF
+                        </p>
+                        {line.discountName && (
+                          <p className="text-[11px] text-slate-400 line-through font-medium">
+                            {line.originalPrice.toLocaleString("fr-FR")} GNF
+                          </p>
+                        )}
+                        {line.isGrosPricing && (
+                          <span className="rounded-lg bg-[#e6eef8] px-2 py-0.5 text-[10px] font-bold text-emerald-600 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+                            Tarif gros
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-      {/* Section Logos de Paiement (assets locaux) */}
-      <div className="mt-6 overflow-hidden rounded-2xl border border-navy-800/10 bg-white shadow-sm">
-        <div className="flex items-center gap-2 border-b border-navy-800/10 bg-offwhite-100/60 px-4 py-3">
-          <ShieldCheck size={16} className="text-emerald-600" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-navy-800/60">
-            Paiement 100% sécurisé
+                    {unavailable && (
+                      <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-amber-600">
+                        <AlertTriangle size={12} />
+                        {unavailable.reason}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* CONTRÔLE QUANTITÉ NEUMORPHIQUE */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        updateQuantity(item.productId, item.quantity - 1)
+                      }
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-600 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] hover:text-mechanic-500 active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] disabled:opacity-40 disabled:pointer-events-none transition-all"
+                      disabled={item.quantity <= 1}
+                      aria-label="Diminuer"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-6 text-center text-xs font-bold text-slate-800">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() =>
+                        updateQuantity(item.productId, item.quantity + 1)
+                      }
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-600 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] hover:text-mechanic-500 active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] transition-all"
+                      aria-label="Augmenter"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+
+                  {/* SUPPRESSION */}
+                  <button
+                    onClick={() => removeItem(item.productId)}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-400 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] hover:text-rose-500 active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] transition-all ml-1"
+                    aria-label="Retirer"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* SOUS-TOTAL EN RELIEF */}
+        <div className="mt-8 flex items-center justify-between rounded-2xl bg-[#e6eef8] p-5 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            Sous-total
+          </span>
+          <span className="flex items-center gap-2 text-lg font-bold text-mechanic-500">
+            {loading && quote && (
+              <Loader size={16} className="animate-spin text-mechanic-500" />
+            )}
+            {(quote?.subtotal ?? 0).toLocaleString("fr-FR")} GNF
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 p-4 sm:gap-3">
-          {PAYMENT_METHODS.map((method) => (
-            <div
-              key={method.id}
-              className="group flex h-14 items-center justify-center rounded-xl border border-navy-800/10 bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-mechanic-500/30 hover:shadow-md sm:h-16"
-            >
-              <div className="relative h-full w-full">
-                <Image
-                  src={method.logoUrl}
-                  alt={method.label}
-                  fill
-                  className="object-contain p-1 grayscale-0"
-                  sizes="80px"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+        {quote?.unavailable?.length > 0 && (
+          <p className="mt-3 text-xs font-medium text-amber-600 px-1">
+            Certains articles ne sont pas inclus dans le sous-total — ajustez ou
+            retirez-les ci-dessus pour continuer.
+          </p>
+        )}
 
-        {/* Paiement à la livraison */}
-        <div className="mx-4 mb-4 flex items-center justify-center gap-2 rounded-lg bg-offwhite-100 py-2.5 text-xs font-medium text-navy-800/80">
-          <Banknote size={16} className="text-emerald-600" />
-          <span>Paiement en espèces à la livraison disponible</span>
+        {/* BOUTON PASSER COMMANDE */}
+        <Link
+          href="/checkout"
+          aria-disabled={loading || quote?.unavailable?.length > 0}
+          className={`mt-6 block w-full rounded-2xl bg-[#e6eef8] py-4 text-center text-xs font-bold text-mechanic-500 transition-all duration-200 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff] hover:text-mechanic-600 hover:shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] ${
+            loading || quote?.unavailable?.length > 0
+              ? "pointer-events-none opacity-50"
+              : ""
+          }`}
+        >
+          Passer commande
+        </Link>
+
+        {/* BLOC DES MOYENS DE PAIEMENT NEUMORPHIQUE */}
+        <div className="mt-8 rounded-3xl bg-[#e6eef8] p-6 shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] space-y-5">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <ShieldCheck size={18} className="text-emerald-500" />
+            <span>Paiement 100% sécurisé</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
+            {PAYMENT_METHODS.map((method) => (
+              <div
+                key={method.id}
+                className="flex h-14 items-center justify-center rounded-2xl bg-[#e6eef8] p-2 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] sm:h-16 transition-all"
+              >
+                <div className="relative h-full w-full">
+                  <Image
+                    src={method.logoUrl}
+                    alt={method.label}
+                    fill
+                    className="object-contain p-1"
+                    sizes="80px"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* PAIEMENT À LA LIVRAISON */}
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-[#e6eef8] py-3 text-xs font-semibold text-slate-600 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+            <Banknote size={16} className="text-emerald-500" />
+            <span>Paiement en espèces à la livraison disponible</span>
+          </div>
         </div>
       </div>
     </div>

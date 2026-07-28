@@ -4,11 +4,13 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
@@ -25,64 +27,121 @@ function LoginForm() {
         toast.error(data.error || "Connexion impossible");
         return;
       }
-      toast.success("Connexion reussie");
+      toast.success("Connexion réussie");
       const explicitRedirect = searchParams.get("redirect");
       router.push(
         explicitRedirect || (data.role === "ADMIN" ? "/admin" : "/compte"),
       );
     } catch {
-      toast.error("Erreur reseau, reessayez");
+      toast.error("Erreur réseau, réessayez");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold text-navy-900">
-        Connexion
-      </h1>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label className="text-sm font-medium text-navy-800">Email</label>
-          <input
-            type="email"
-            required
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-navy-800/15 px-3 py-2 outline-none focus-visible:border-mechanic-500"
-          />
+    <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
+      {/* CARTE PRINCIPALE NEUMORPHIQUE */}
+      <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 sm:p-10 shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff]">
+        {/* EN-TÊTE AVEC BADGE EXTRUDÉ */}
+        <div className="text-center space-y-3 mb-8">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
+            <LogIn size={28} />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+            Connexion
+          </h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Heureux de vous revoir !
+          </p>
         </div>
-        <div>
-          <label className="text-sm font-medium text-navy-800">
-            Mot de passe
-          </label>
-          <input
-            type="password"
-            required
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-navy-800/15 px-3 py-2 outline-none focus-visible:border-mechanic-500"
-          />
+
+        {/* FORMULAIRE */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* CHAMP EMAIL */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-600 ml-1">
+              Email
+            </label>
+            <div className="relative flex items-center">
+              <div className="absolute left-4 text-slate-400">
+                <Mail size={18} />
+              </div>
+              <input
+                type="email"
+                required
+                placeholder="votre@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full rounded-xl bg-[#e6eef8] py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] focus:shadow-[inset_6px_6px_10px_#bdc4ce,inset_-6px_-6px_10px_#ffffff]"
+              />
+            </div>
+          </div>
+
+          {/* CHAMP MOT DE PASSE */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center px-1">
+              <label className="block text-xs font-semibold text-slate-600">
+                Mot de passe
+              </label>
+              <Link
+                href="/reset-password"
+                className="text-xs font-semibold text-mechanic-500 hover:underline transition-all"
+              >
+                Oublié ?
+              </Link>
+            </div>
+            <div className="relative flex items-center">
+              <div className="absolute left-4 text-slate-400">
+                <Lock size={18} />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="w-full rounded-xl bg-[#e6eef8] py-3 pl-11 pr-10 text-sm font-medium text-slate-700 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] focus:shadow-[inset_6px_6px_10px_#bdc4ce,inset_-6px_-6px_10px_#ffffff]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* BOUTON D'ACTION NEUMORPHIQUE EN RELIEF */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#e6eef8] py-3.5 text-sm font-bold text-mechanic-500 transition-all duration-200 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:text-mechanic-600 hover:shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] disabled:opacity-60"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Connexion...</span>
+              </>
+            ) : (
+              <span>Se connecter</span>
+            )}
+          </button>
+        </form>
+
+        {/* PIED DE PAGE */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-slate-500 font-medium">
+            Pas encore de compte ?{" "}
+            <Link
+              href="/register"
+              className="font-bold text-mechanic-500 hover:underline transition-all"
+            >
+              Créer un compte
+            </Link>
+          </p>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-mechanic-500 py-2.5 font-medium text-white hover:bg-mechanic-600 disabled:opacity-60"
-        >
-          {loading ? "Connexion..." : "Se connecter"}
-        </button>
-      </form>
-      <div className="mt-4 flex justify-between text-sm">
-        <Link
-          href="/reset-password"
-          className="text-mechanic-500 hover:underline"
-        >
-          Mot de passe oublie ?
-        </Link>
-        <Link href="/register" className="text-navy-800/70 hover:underline">
-          Creer un compte
-        </Link>
       </div>
     </div>
   );
@@ -92,8 +151,11 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto flex min-h-[70vh] max-w-sm items-center justify-center px-4 py-12">
-          Chargement...
+        <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center text-slate-500 font-medium text-sm">
+          <div className="flex items-center gap-2">
+            <Loader2 size={20} className="animate-spin text-mechanic-500" />
+            <span>Chargement...</span>
+          </div>
         </div>
       }
     >

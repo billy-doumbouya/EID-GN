@@ -6,12 +6,19 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useCartStore } from "@/lib/cartStore";
-import { ZigzagDivider } from "@/components/ZigzagDivider";
+import {
+  ShieldCheck,
+  CreditCard,
+  User,
+  Phone,
+  Mail,
+  ShoppingBag,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 
 // Logos locaux (public/payment-logo/)
-
-
- const PAYMENT_METHODS = [
+const PAYMENT_METHODS = [
   {
     id: "orange-money",
     label: "Orange Money",
@@ -42,8 +49,9 @@ import { ZigzagDivider } from "@/components/ZigzagDivider";
     id: "paycard",
     label: "PayCard",
     logoUrl: "/payment-logo/paycard.png",
-  }
+  },
 ];
+
 async function fetchCurrentUser() {
   const res = await fetch("/api/auth/me");
   if (!res.ok) return { user: null };
@@ -163,9 +171,6 @@ export default function CheckoutPage() {
 
       clear();
 
-      // Ouvre Djomy dans un nouvel onglet au lieu de quitter le checkout —
-      // Djomy ne garantit pas de redirection retour automatique
-      // (cf. skipDjomyStatusPage), donc on surveille nous-memes le statut.
       popupRef.current = window.open(data.redirectUrl, "_blank");
       setWaitingOrderNumber(data.orderNumber);
     } catch {
@@ -194,145 +199,186 @@ export default function CheckoutPage() {
           window.location.href = `/checkout/confirmation?order=${waitingOrderNumber}`;
         }
       } catch {
-        // silencieux : on retente au prochain intervalle
+        // silencieux : retente au prochain intervalle
       }
     }, 3000);
 
     return () => clearInterval(pollRef.current);
   }, [waitingOrderNumber]);
 
+  /* PANIER VIDE */
   if (items.length === 0) {
     return (
-      <p className="mx-auto max-w-2xl px-4 py-24 text-center text-navy-800/60">
-        Votre panier est vide.
-      </p>
+      <div className="min-h-[70vh] bg-[#e6eef8] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] space-y-4">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-slate-400 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
+            <ShoppingBag size={32} />
+          </div>
+          <p className="text-sm font-semibold text-slate-600">
+            Votre panier est vide.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div>
-      <div className="bg-navy-900 py-8 text-white">
-        <div className="mx-auto max-w-2xl px-4 md:px-6">
-          <h1 className="font-display text-2xl font-semibold">
+    <div className="min-h-screen bg-[#e6eef8] py-10 px-4 md:px-6">
+      <div className="mx-auto max-w-2xl space-y-6">
+        {/* TITRE PRINCIPAL */}
+        <div className="rounded-3xl bg-[#e6eef8] p-6 shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] text-center">
+          <h1 className="font-display text-2xl font-bold text-slate-800">
             Finaliser la commande
           </h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            Vérifiez vos détails et choisissez votre moyen de paiement
+          </p>
         </div>
-      </div>
-      <ZigzagDivider color="var(--color-navy-900)" flip />
 
-      <div className="mx-auto max-w-2xl px-4 py-8 md:px-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Récap panier */}
-          <div className="rounded-xl border border-navy-800/10 bg-white p-4">
-            <h2 className="mb-3 text-sm font-semibold text-navy-900">
-              Votre commande
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* RÉCAPITULATIF COMMANDE */}
+          <div className="rounded-3xl bg-[#e6eef8] p-6 shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <ShoppingBag size={18} className="text-mechanic-500" />
+              <span>Votre commande</span>
             </h2>
 
             {quoteLoading && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {items.map((i) => (
                   <div
                     key={i.productId}
-                    className="h-10 animate-pulse rounded-lg bg-offwhite-200"
+                    className="h-12 animate-pulse rounded-2xl bg-[#d5deea]"
                   />
                 ))}
               </div>
             )}
 
-            {quoteError && <p className="text-sm text-danger">{quoteError}</p>}
+            {quoteError && (
+              <div className="rounded-2xl bg-[#e6eef8] p-4 text-xs font-semibold text-rose-500 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] flex items-center gap-2">
+                <AlertTriangle size={16} />
+                <span>{quoteError}</span>
+              </div>
+            )}
 
             {quote && (
-              <div className="divide-y divide-navy-800/5">
+              <div className="space-y-3">
                 {quote.unavailable?.map((u) => (
-                  <div key={u.productId} className="py-2 text-sm text-danger">
-                    {u.reason}
-                  </div>
-                ))}
-                {quote.lines.map((line) => (
                   <div
-                    key={line.productId}
-                    className="flex items-center justify-between py-2 text-sm"
+                    key={u.productId}
+                    className="rounded-xl bg-[#e6eef8] p-3 text-xs font-semibold text-amber-600 shadow-[inset_3px_3px_6px_#e5cfb3,inset_-3px_-3px_6px_#ffffff] flex items-center gap-2"
                   >
-                    <div>
-                      <p className="font-medium text-navy-900">{line.name}</p>
-                      <p className="text-xs text-navy-800/50">
-                        {line.quantity} x{" "}
-                        {line.unitPrice.toLocaleString("fr-FR")} GNF
-                        {line.isGrosPricing && (
-                          <span className="ml-1 rounded-full bg-mechanic-500/10 px-1.5 py-0.5 text-mechanic-500">
-                            Prix gros
-                          </span>
-                        )}
-                        {line.discountName && (
-                          <span className="ml-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-amber-500">
-                            {line.discountName}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <span className="font-medium text-navy-900">
-                      {line.lineTotal.toLocaleString("fr-FR")} GNF
-                    </span>
+                    <AlertTriangle size={14} />
+                    <span>{u.reason}</span>
                   </div>
                 ))}
+
+                <div className="divide-y divide-slate-300/40">
+                  {quote.lines.map((line) => (
+                    <div
+                      key={line.productId}
+                      className="flex items-center justify-between py-3 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-bold text-slate-800">{line.name}</p>
+                        <p className="font-medium text-slate-500">
+                          {line.quantity} ×{" "}
+                          {line.unitPrice.toLocaleString("fr-FR")} GNF
+                          {line.isGrosPricing && (
+                            <span className="ml-2 inline-block rounded-md bg-[#e6eef8] px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+                              Prix gros
+                            </span>
+                          )}
+                          {line.discountName && (
+                            <span className="ml-2 inline-block rounded-md bg-[#e6eef8] px-1.5 py-0.5 text-[10px] font-bold text-amber-600 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+                              {line.discountName}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <span className="font-bold text-slate-800">
+                        {line.lineTotal.toLocaleString("fr-FR")} GNF
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Coordonnées */}
-          <div className="space-y-4 rounded-xl border border-navy-800/10 bg-white p-4">
+          {/* COORDONNÉES CLIENT */}
+          <div className="rounded-3xl bg-[#e6eef8] p-6 shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-navy-900">
-                Vos coordonnées
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <User size={18} className="text-mechanic-500" />
+                <span>Vos coordonnées</span>
               </h2>
               {currentUser && (
-                <span className="rounded-full bg-mechanic-500/10 px-2 py-0.5 text-xs font-medium text-mechanic-600">
-                  Pré-rempli,{" "}
-                  {currentUser.fullName?.split(" ")[0] || "connecté"}
+                <span className="rounded-xl bg-[#e6eef8] px-3 py-1 text-[11px] font-bold text-mechanic-500 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+                  Pré-rempli ({currentUser.fullName?.split(" ")[0] || "Client"})
                 </span>
               )}
             </div>
-            <input
-              type="text"
-              required
-              placeholder="Nom complet"
-              value={form.guestFullName}
-              disabled={userLoading}
-              onChange={(e) =>
-                setForm({ ...form, guestFullName: e.target.value })
-              }
-              className="w-full rounded-lg border border-navy-800/15 px-3 py-2 outline-none focus-visible:border-mechanic-500 disabled:bg-offwhite-100"
-            />
-            <input
-              type="tel"
-              required
-              placeholder="Téléphone (pour le paiement mobile money)"
-              value={form.guestPhone}
-              disabled={userLoading}
-              onChange={(e) => setForm({ ...form, guestPhone: e.target.value })}
-              className="w-full rounded-lg border border-navy-800/15 px-3 py-2 outline-none focus-visible:border-mechanic-500 disabled:bg-offwhite-100"
-            />
-            <input
-              type="email"
-              placeholder="Email (facultatif, pour le reçu)"
-              value={form.guestEmail}
-              disabled={userLoading}
-              onChange={(e) => setForm({ ...form, guestEmail: e.target.value })}
-              className="w-full rounded-lg border border-navy-800/15 px-3 py-2 outline-none focus-visible:border-mechanic-500 disabled:bg-offwhite-100"
-            />
+
+            <div className="space-y-3">
+              {/* NOM COMPLET */}
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="Nom complet"
+                  value={form.guestFullName}
+                  disabled={userLoading}
+                  onChange={(e) =>
+                    setForm({ ...form, guestFullName: e.target.value })
+                  }
+                  className="w-full rounded-2xl bg-[#e6eef8] px-4 py-3.5 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] focus:shadow-[inset_4px_4px_8px_#b8c2cc,inset_-4px_-4px_8px_#ffffff] transition-all disabled:opacity-50"
+                />
+              </div>
+
+              {/* TÉLÉPHONE */}
+              <div className="relative">
+                <input
+                  type="tel"
+                  required
+                  placeholder="Téléphone (pour le paiement mobile money)"
+                  value={form.guestPhone}
+                  disabled={userLoading}
+                  onChange={(e) =>
+                    setForm({ ...form, guestPhone: e.target.value })
+                  }
+                  className="w-full rounded-2xl bg-[#e6eef8] px-4 py-3.5 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] focus:shadow-[inset_4px_4px_8px_#b8c2cc,inset_-4px_-4px_8px_#ffffff] transition-all disabled:opacity-50"
+                />
+              </div>
+
+              {/* EMAIL */}
+              <div className="relative">
+                <input
+                  type="email"
+                  placeholder="Email (facultatif, pour le reçu)"
+                  value={form.guestEmail}
+                  disabled={userLoading}
+                  onChange={(e) =>
+                    setForm({ ...form, guestEmail: e.target.value })
+                  }
+                  className="w-full rounded-2xl bg-[#e6eef8] px-4 py-3.5 text-xs font-semibold text-slate-800 placeholder-slate-400 outline-none shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] focus:shadow-[inset_4px_4px_8px_#b8c2cc,inset_-4px_-4px_8px_#ffffff] transition-all disabled:opacity-50"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Moyen de paiement */}
-          <div className="rounded-xl border border-navy-800/10 bg-white p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-navy-900">
-              Moyen de paiement
+          {/* MOYEN DE PAIEMENT */}
+          <div className="rounded-3xl bg-[#e6eef8] p-6 shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <CreditCard size={18} className="text-mechanic-500" />
+              <span>Moyen de paiement</span>
             </h2>
 
             <label
               htmlFor="mobile-payment"
-              className="flex cursor-pointer flex-col gap-3 rounded-xl border-2 border-mechanic-500 bg-navy-800/5 p-4 transition-all"
+              className="flex cursor-pointer flex-col gap-4 rounded-2xl bg-[#e6eef8] p-4 transition-all shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]"
             >
-              <div className="flex items-center gap-3 border-b border-navy-800/10 pb-3">
+              <div className="flex items-center gap-3 border-b border-slate-300/40 pb-3">
                 <input
                   type="radio"
                   id="mobile-payment"
@@ -340,23 +386,24 @@ export default function CheckoutPage() {
                   value="DJOMY"
                   checked={paymentProvider === "DJOMY"}
                   onChange={() => setPaymentProvider("DJOMY")}
-                  className="h-4 w-4 accent-mechanic-500"
+                  className="h-4 w-4 accent-mechanic-500 cursor-pointer"
                 />
                 <div>
-                  <span className="block text-base font-semibold text-navy-900">
+                  <span className="block text-xs font-bold text-slate-800">
                     Mobile Money & carte bancaire
                   </span>
-                  <span className="text-xs text-navy-800/60">
+                  <span className="text-[11px] font-medium text-slate-500">
                     Paiement rapide et sécurisé en Guinée
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-4">
+              {/* PAIEMENT LOGOS GRID */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {PAYMENT_METHODS.map((method) => (
                   <div
                     key={method.id}
-                    className="flex h-16 items-center justify-center rounded-lg border border-navy-800/10 bg-white p-2 shadow-sm"
+                    className="flex h-14 items-center justify-center rounded-xl bg-[#e6eef8] p-2 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] sm:h-16"
                   >
                     <div className="relative h-full w-full">
                       <Image
@@ -373,14 +420,17 @@ export default function CheckoutPage() {
             </label>
           </div>
 
-          {/* Total */}
-          <div className="flex items-center justify-between rounded-xl bg-navy-900 p-4 text-white">
-            <span className="font-medium">Total à payer</span>
-            <span className="text-lg font-semibold text-mechanic-400">
+          {/* TOTAL À PAYER */}
+          <div className="flex items-center justify-between rounded-2xl bg-[#e6eef8] p-5 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Total à payer
+            </span>
+            <span className="text-lg font-bold text-mechanic-500">
               {quote ? quote.subtotal.toLocaleString("fr-FR") : "..."} GNF
             </span>
           </div>
 
+          {/* BOUTON DE SOUMISSION */}
           <button
             type="submit"
             disabled={
@@ -390,13 +440,24 @@ export default function CheckoutPage() {
               quote.unavailable?.length > 0 ||
               !!waitingOrderNumber
             }
-            className="w-full rounded-lg bg-mechanic-500 py-3 font-medium text-white hover:bg-mechanic-600 disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#e6eef8] py-4 text-xs font-bold text-mechanic-500 transition-all duration-200 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff] hover:text-mechanic-600 hover:shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] active:shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff] disabled:opacity-50 disabled:pointer-events-none"
           >
-            {waitingOrderNumber
-              ? "En attente du paiement dans l'autre onglet..."
-              : submitting
-                ? "Création de la commande..."
-                : "Payer maintenant"}
+            {waitingOrderNumber ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-mechanic-500" />
+                <span>En attente du paiement dans l'autre onglet...</span>
+              </>
+            ) : submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-mechanic-500" />
+                <span>Création de la commande...</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={16} className="text-emerald-500" />
+                <span>Payer maintenant</span>
+              </>
+            )}
           </button>
         </form>
       </div>

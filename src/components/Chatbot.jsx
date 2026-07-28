@@ -9,7 +9,7 @@ import LottiAnimation from "@/components/lottie/LottiAnimation.json";
 const SUGGESTIONS = [
   "Motos disponibles en stock",
   "Suivre ma commande",
-  "Zones de livraison a Kankan",
+  "Zones de livraison à Kankan",
   "Moyens de paiement",
 ];
 
@@ -28,9 +28,6 @@ export function Chatbot() {
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Identifiant stable pour toute la duree de vie du widget (persiste entre
-  // ouverture/fermeture tant que la page n'est pas rechargee), utilise pour
-  // regrouper les messages d'une meme conversation en base (analytics).
   const [sessionId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
@@ -96,16 +93,17 @@ export function Chatbot() {
 
   return (
     <>
+      {/* BOUTON FLOTTANT SOFT UI */}
       <div className="fixed bottom-24 right-6 z-50">
         {!hasOpened && (
-          <span className="absolute inset-0 animate-ping rounded-full bg-mechanic-500/40" />
+          <span className="absolute inset-0 animate-ping rounded-full bg-mechanic-500/30" />
         )}
         <motion.button
           onClick={() => setOpen((o) => !o)}
           aria-label="Assistant"
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
           whileHover={{ scale: 1.04 }}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-navy-900 to-navy-800 text-white shadow-lg shadow-navy-900/30 ring-1 ring-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mechanic-500"
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#e6eef8] text-slate-800 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] transition-all hover:shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
@@ -114,15 +112,15 @@ export function Chatbot() {
               animate={{ opacity: 1, rotate: 0 }}
               exit={{ opacity: 0, rotate: 45 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center text-mechanic-500"
             >
               {open ? (
-                <X size={22} />
+                <X size={24} className="text-slate-700" />
               ) : (
                 <LottiePlayer
                   animationData={LottiAnimation}
                   loop={true}
-                  className="h-18 w-18"
+                  className="h-16 w-16"
                 />
               )}
             </motion.span>
@@ -130,6 +128,7 @@ export function Chatbot() {
         </motion.button>
       </div>
 
+      {/* FENÊTRE DE CHAT SOFT UI */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -137,24 +136,22 @@ export function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-40 right-6 z-50 flex h-[30rem] w-[22rem] flex-col overflow-hidden rounded-2xl border border-navy-900/10 bg-white/95 shadow-2xl shadow-navy-900/20 backdrop-blur-xl sm:w-96"
+            className="fixed bottom-40 right-6 z-50 flex h-[30rem] w-[22rem] flex-col overflow-hidden rounded-3xl bg-[#e6eef8] shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff] sm:w-96"
           >
-            <div className="relative overflow-hidden bg-navy-900 px-4 py-3.5">
-              <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-24 rotate-12 bg-mechanic-500/90" />
-              <div className="pointer-events-none absolute -right-2 top-8 h-3 w-28 -rotate-[20deg] bg-mechanic-500/40" />
-
+            {/* EN-TÊTE CHATBOT */}
+            <div className="relative overflow-hidden bg-[#e6eef8] px-4 py-3.5 shadow-[0_4px_6px_-1px_#c3cad3]">
               <div className="relative flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                  <Bike size={18} className="text-white" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff]">
+                  <Bike size={20} className="text-mechanic-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">
+                  <p className="truncate text-sm font-bold text-slate-800">
                     Assistant EID-GN
                   </p>
-                  <p className="flex items-center gap-1.5 text-[11px] text-white/60">
-                    <span className="relative flex h-1.5 w-1.5">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                    <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                     </span>
                     En ligne
                   </p>
@@ -162,9 +159,10 @@ export function Chatbot() {
               </div>
             </div>
 
+            {/* ZONE DE MESSAGES */}
             <div
               ref={scrollRef}
-              className="flex-1 space-y-3 overflow-y-auto p-3.5 [scrollbar-width:thin] [scrollbar-color:theme(colors.navy.900/15)_transparent]"
+              className="flex-1 space-y-3.5 overflow-y-auto p-4 [scrollbar-width:thin] [scrollbar-color:#c3cad3_transparent]"
             >
               {messages.map((m, i) => (
                 <motion.div
@@ -172,18 +170,20 @@ export function Chatbot() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className={`flex items-end gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+                  className={`flex items-end gap-2 ${
+                    m.role === "user" ? "flex-row-reverse" : ""
+                  }`}
                 >
                   {m.role === "assistant" && (
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-navy-900/5">
-                      <Bike size={12} className="text-navy-900/50" />
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#e6eef8] shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff]">
+                      <Bike size={14} className="text-mechanic-500" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                    className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-xs font-medium leading-relaxed ${
                       m.role === "user"
-                        ? "rounded-br-md bg-gradient-to-br from-mechanic-500 to-mechanic-600 text-white shadow-sm shadow-mechanic-500/25"
-                        : "rounded-bl-md bg-offwhite-200 text-navy-900"
+                        ? "rounded-br-none bg-[#e6eef8] text-slate-900 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff]"
+                        : "rounded-bl-none bg-[#e6eef8] text-slate-700 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"
                     }`}
                   >
                     {m.content}
@@ -191,20 +191,21 @@ export function Chatbot() {
                 </motion.div>
               ))}
 
+              {/* EN COURS DE CHARGEMENT */}
               {loading && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="flex items-end gap-2"
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-navy-900/5">
-                    <Bike size={12} className="text-navy-900/50" />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#e6eef8] shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff]">
+                    <Bike size={14} className="text-mechanic-500" />
                   </div>
-                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-offwhite-200 px-3.5 py-3">
+                  <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-none bg-[#e6eef8] px-4 py-3 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
                     {[0, 1, 2].map((i) => (
                       <motion.span
                         key={i}
-                        className="h-1.5 w-1.5 rounded-full bg-navy-900/40"
+                        className="h-1.5 w-1.5 rounded-full bg-slate-400"
                         animate={{ y: [0, -4, 0] }}
                         transition={{
                           duration: 0.8,
@@ -218,13 +219,14 @@ export function Chatbot() {
                 </motion.div>
               )}
 
+              {/* SUGGESTIONS RAPIDES */}
               <AnimatePresence>
                 {showSuggestions && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex flex-wrap gap-1.5 pl-8 pt-1"
+                    className="flex flex-wrap gap-2 pt-2"
                   >
                     {SUGGESTIONS.map((s, i) => (
                       <motion.button
@@ -233,9 +235,9 @@ export function Chatbot() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 + i * 0.06 }}
-                        whileHover={{ scale: 1.03 }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
-                        className="rounded-full border border-navy-900/10 bg-white px-3 py-1.5 text-xs font-medium text-navy-900/80 shadow-sm transition-colors hover:border-mechanic-500/40 hover:text-mechanic-600"
+                        className="rounded-xl bg-[#e6eef8] px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] transition-all hover:text-mechanic-500 active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
                       >
                         {s}
                       </motion.button>
@@ -245,26 +247,26 @@ export function Chatbot() {
               </AnimatePresence>
             </div>
 
+            {/* FORMULAIRE D'ENVOI */}
             <form
               onSubmit={sendMessage}
-              className="flex items-center gap-2 border-t border-navy-900/10 bg-white p-2.5"
+              className="flex items-center gap-2.5 bg-[#e6eef8] p-3 shadow-[inset_0_2px_4px_#c3cad3]"
             >
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Posez votre question..."
-                className="flex-1 rounded-full border border-navy-900/10 bg-offwhite-200/60 px-4 py-2.5 text-sm text-navy-900 outline-none transition-colors placeholder:text-navy-900/40 focus-visible:border-mechanic-500 focus-visible:bg-white"
+                className="flex-1 rounded-2xl bg-[#e6eef8] px-4 py-2.5 text-xs font-medium text-slate-800 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] outline-none transition-all placeholder:text-slate-400 focus:shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff]"
               />
               <motion.button
                 type="submit"
                 disabled={loading || !input.trim()}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
                 aria-label="Envoyer"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-mechanic-500 to-mechanic-600 text-white shadow-sm shadow-mechanic-500/30 disabled:opacity-40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#e6eef8] text-mechanic-500 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] transition-all hover:shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] disabled:opacity-40 disabled:shadow-none"
               >
-                <span className="pointer-events-none absolute -right-3 -top-3 h-8 w-8 rotate-12 bg-white/15" />
-                <Send size={15} className="relative" />
+                <Send size={15} />
               </motion.button>
             </form>
           </motion.div>

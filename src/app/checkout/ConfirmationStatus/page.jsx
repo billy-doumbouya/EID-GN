@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, RefreshCw } from "lucide-react";
 
 const PAID_STATUSES = ["PAYEE", "EN_PREPARATION", "EXPEDIEE", "LIVREE"];
 const FAILED_STATUSES = ["ANNULEE"];
@@ -51,44 +51,67 @@ export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
   }, [isPaid, isFailed, pollCount, orderNumber, router]);
 
   return (
-    <>
-      {isPaid ? (
-        <CheckCircle2 size={56} className="mx-auto text-success" />
-      ) : isFailed ? (
-        <XCircle size={56} className="mx-auto text-danger" />
-      ) : (
-        <Clock size={56} className="mx-auto animate-pulse text-amber-500" />
-      )}
-      <h1 className="mt-4 font-display text-xl font-semibold text-navy-900">
+    <div className="mx-auto my-8 max-w-md rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff]">
+      {/* BADGE D'ICÔNE SOFT UI */}
+      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-[#e6eef8] shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
+        {isPaid ? (
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+            <CheckCircle2 size={40} className="text-emerald-500" />
+          </div>
+        ) : isFailed ? (
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+            <XCircle size={40} className="text-rose-500" />
+          </div>
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+            <Clock size={40} className="animate-pulse text-amber-500" />
+          </div>
+        )}
+      </div>
+
+      {/* TITRE ET ÉTAT */}
+      <h1 className="mt-6 font-display text-xl font-bold text-slate-800">
         {isPaid
-          ? "Paiement confirme"
+          ? "Paiement confirmé"
           : isFailed
-            ? "Paiement echoue"
-            : "Paiement en cours de verification"}
+            ? "Paiement échoué"
+            : "Vérification du paiement"}
       </h1>
-      <p className="mt-2 text-navy-800/70">
-        Commande <strong>{orderNumber}</strong> —{" "}
-        {Number(total).toLocaleString("fr-FR")} GNF
-      </p>
+
+      {/* RÉCAPITULATIF DE LA COMMANDE */}
+      <div className="mt-4 rounded-2xl bg-[#e6eef8] px-4 py-3 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
+        <p className="text-xs font-semibold text-slate-600">
+          Commande <span className="text-slate-900">#{orderNumber}</span>
+        </p>
+        <p className="mt-0.5 text-base font-bold text-mechanic-500">
+          {Number(total).toLocaleString("fr-FR")} GNF
+        </p>
+      </div>
+
+      {/* MESSAGES D'EXPLICATION */}
       {isFailed && (
-        <p className="mt-2 text-sm text-navy-800/60">
-          Le paiement n'a pas abouti et la commande a ete annulee (stock
-          libere).{" "}
+        <div className="mt-4 space-y-3">
+          <p className="text-xs font-medium text-slate-500">
+            Le paiement n'a pas abouti et la commande a été annulée (les stocks
+            ont été libérés).
+          </p>
           <Link
             href="/cart"
-            className="font-medium text-mechanic-500 hover:underline"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#e6eef8] px-5 py-2.5 text-xs font-bold text-mechanic-500 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] transition-all hover:shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
           >
-            Reessayer la commande
+            <RefreshCw size={14} />
+            Réessayer la commande
           </Link>
-        </p>
+        </div>
       )}
+
       {!isPaid && !isFailed && (
-        <p className="mt-2 text-sm text-navy-800/50">
+        <p className="mt-4 text-xs font-medium text-slate-500 leading-relaxed">
           {pollCount >= MAX_POLLS
-            ? "La verification prend plus de temps que prevu. Vous recevrez un email des que c'est confirme."
-            : "Si vous venez de payer, la confirmation peut prendre quelques instants."}
+            ? "La vérification prend plus de temps que prévu. Vous recevrez une confirmation dès validation de l'opérateur."
+            : "Si vous venez d'effectuer le paiement sur votre téléphone, la confirmation peut prendre quelques instants..."}
         </p>
       )}
-    </>
+    </div>
   );
 }
