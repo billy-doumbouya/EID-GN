@@ -180,7 +180,7 @@ export function Chatbot() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-xs font-medium leading-relaxed ${
+                    className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-xs font-medium leading-relaxed whitespace-pre-line ${
                       m.role === "user"
                         ? "rounded-br-none bg-[#e6eef8] text-slate-900 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff]"
                         : "rounded-bl-none bg-[#e6eef8] text-slate-700 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"

@@ -1,4 +1,3 @@
-// src/app/api/chatbot/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -6,11 +5,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
 
-// Modeles gratuits Google AI Studio, du plus capable au plus leger.
-// On "map through" cette liste : si un modele est rate-limited (429) ou
-// indisponible (503/500), on bascule automatiquement sur le suivant.
-// A revalider avant mise en prod : la liste de modeles gratuits disponibles
-// change avec le temps, verifier sur Google AI Studio.
 const FREE_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
@@ -18,23 +12,20 @@ const FREE_MODELS = [
   "gemini-3.1-flash-lite",
 ];
 
-// Liste FERMEE d'outils. Le LLM ne genere jamais de SQL : chaque fonction
-// execute une requete Prisma parametree et testee. C'est la seule maniere
-// d'eviter l'injection et la fuite de donnees (ex: infos d'autres clients).
-// Format Gemini : functionDeclarations avec "parameters" (pas "input_schema").
 const TOOLS = [
   {
     functionDeclarations: [
       {
         name: "search_products",
         description:
-          "Recherche des produits dans le catalogue (motos, tricycles, pieces detachees)",
+          "Recherche des produits dans le catalogue (motos, tricycles, pièces détachées). Utile pour vérifier si un produit est en stock ou connaître son prix.",
         parameters: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "Termes de recherche, ex: batterie CG125",
+              description:
+                "Terme ou pièce recherchée (ex: TVS, Batterrie, Pneu, CG125)",
             },
             type: { type: "string", enum: ["MOTO", "TRICYCLE", "PIECE"] },
           },
@@ -44,7 +35,7 @@ const TOOLS = [
       {
         name: "get_product_details",
         description:
-          "Recupere les details complets d'un produit (prix, stock, compatibilite)",
+          "Récupère la fiche détaillée d'un produit (compatibilité véhicules, description, prix exact, stock).",
         parameters: {
           type: "object",
           properties: { productId: { type: "string" } },
@@ -54,7 +45,7 @@ const TOOLS = [
       {
         name: "check_order_status",
         description:
-          "Verifie le statut d'une commande via son numero et le telephone du client",
+          "Vérifie l'état et l'avancement d'une commande passée par le client.",
         parameters: {
           type: "object",
           properties: {
@@ -66,22 +57,37 @@ const TOOLS = [
       },
       {
         name: "get_delivery_info",
-        description: "Retourne les zones et delais de livraison",
+        description:
+          "Fournit les zones couvertes, délais et tarifs de livraison en Guinée.",
         parameters: { type: "object", properties: {} },
       },
     ],
   },
 ];
 
-const SYSTEM_PROMPT = `Tu es l'assistant de EID-GN Kankan, boutique de motos, tricycles et pieces
-detachees. Reponds en francais, de maniere concise et utile.
-Moyens de paiement acceptes : Orange Money, MTN Mobile Money, Moov Money et carte
-bancaire (Visa), via nos partenaires de paiement securises.
-Politique de retour : voir la page /retours du site.
-Utilise UNIQUEMENT les outils fournis pour repondre aux questions sur les produits,
-stocks et commandes - ne jamais inventer de prix, de stock ou de statut de commande.
-Si la question depasse ton perimetre (negociation de prix, reclamation complexe),
-propose clairement au client de contacter la boutique sur WhatsApp.`;
+// PROMPT SYSTÈME ENRICHI ET ENTRAÎNÉ POUR EID-GN
+const SYSTEM_PROMPT = `Tu es "Clinton", l'assistant commercial virtuel officiel de **EID-GN** (Établissements El Hadj Ibrahima Doumbouya et Fils - Guinée), basé à Kankan.
+
+### Ton rôle et ton style :
+- Tu es chaleureux, poli, dynamique et très professionnel.
+- Tu utilises des expressions naturelles adaptées au contexte guinéen quand c'est opportun ("Bonjour / Bonsoir", "Soyez le bienvenu chez EID-GN").
+- Tes réponses doivent être **claires, concises et aérées** (utilise des listes à puces • ou des numéros, évite les gros pavés de texte).
+- Utilise des emojis avec parcimonie pour rendre la discussion vivante (🏍️, 🛠️, 📦, ✅).
+
+### Informations clés sur EID-GN :
+- **Localisation principale :** Kankan, Guinée (magasin physique).
+- **Moyens de paiement acceptés :** Orange Money Guinée, MTN Mobile Money, Moov Money, et Carte Bancaire (Visa).
+- **Livraison :** Partout en Guinée (Kankan en 24h, Conakry, Labé, Nzérékoré, Boké, Kindia, Mamou, Faranah sous 24 à 48h).
+- **Politique de retour :** Les articles non utilisés peuvent être retournés ou échangés selon nos conditions consultables sur la page /retours.
+
+### Règles d'or strictes :
+1. **PRIX ET STOCKS :** N'invente JAMAIS un prix ou un niveau de stock. Si un client demande un produit, utilise IMMÉDIATEMENT l'outil \`search_products\`. Si aucun résultat n'est trouvé, réponds poliment que l'article n'est pas répertorié en ligne et invite-le à contacter le magasin.
+2. **FORMAT DE RÉPONSE PRODUIT :** Quand tu présentes un produit trouvé, indique toujours :
+   - Son nom exact
+   - Son prix en Franc Guinéen (GNF)
+   - Sa disponibilité en stock
+3. **PAGES DU SITE :** Quand tu mentionnes une section du site, indique le lien court (ex: "/motos", "/pieces", "/retours", "/contact"/, "a-propos", "/mentions-legales", "/confidentialite", ).
+4. **OUT DE PÉRIMÈTRE / NÉGOCIATION :** Si le client demande une remise spéciale, un achat en gros, un partenariat ou a une réclamation complexe, réponds poliment et redirige-le vers le service client WhatsApp.`;
 
 async function executeTool(name, input) {
   if (name === "search_products") {
@@ -92,6 +98,7 @@ async function executeTool(name, input) {
         OR: [
           { name: { contains: input.query, mode: "insensitive" } },
           { sku: { contains: input.query, mode: "insensitive" } },
+          { description: { contains: input.query, mode: "insensitive" } },
         ],
       },
       take: 5,
@@ -101,9 +108,21 @@ async function executeTool(name, input) {
         priceDetail: true,
         stock: true,
         sku: true,
+        type: true,
       },
     });
-    return { products };
+
+    // Formate les prix pour que le LLM ne se trompe pas dans les devises
+    const formattedProducts = products.map((p) => ({
+      ...p,
+      prix_gnf: p.priceDetail
+        ? `${p.priceDetail.toLocaleString("fr-FR")} GNF`
+        : "Sur devis",
+      disponibilite:
+        p.stock > 0 ? `En stock (${p.stock} dispo)` : "Rupture de stock",
+    }));
+
+    return { products: formattedProducts };
   }
 
   if (name === "get_product_details") {
@@ -111,15 +130,20 @@ async function executeTool(name, input) {
       where: { id: input.productId },
       include: { compatibility: { include: { vehicleModel: true } } },
     });
-    return product || { error: "Produit introuvable" };
+    if (!product) return { error: "Produit introuvable" };
+
+    return {
+      id: product.id,
+      nom: product.name,
+      description: product.description,
+      prix_gnf: `${product.priceDetail?.toLocaleString("fr-FR")} GNF`,
+      stock: product.stock,
+      compatibilites:
+        product.compatibility?.map((c) => c.vehicleModel.name) || [],
+    };
   }
 
   if (name === "check_order_status") {
-    // Un client connecte a son telephone sur User.phone, pas sur
-    // Order.guestPhone (qui reste null pour les commandes passees en etant
-    // connecte — cf. logique de /api/orders). On verifie donc les deux
-    // sources possibles, sinon un client avec compte ne trouve jamais sa
-    // commande via le chatbot.
     const order = await prisma.order.findFirst({
       where: {
         orderNumber: input.orderNumber,
@@ -127,35 +151,42 @@ async function executeTool(name, input) {
       },
       select: { orderNumber: true, status: true, total: true, createdAt: true },
     });
-    return (
-      order || {
-        error: "Commande introuvable - verifiez le numero et le telephone",
-      }
-    );
+    if (!order) {
+      return {
+        error:
+          "Commande introuvable. Vérifiez le numéro de commande et le numéro de téléphone.",
+      };
+    }
+    return {
+      numero: order.orderNumber,
+      statut: order.status,
+      montant_total: `${order.total?.toLocaleString("fr-FR")} GNF`,
+      date: new Date(order.createdAt).toLocaleDateString("fr-FR"),
+    };
   }
 
   if (name === "get_delivery_info") {
     return {
-      zones: [
-        "Boke",
+      villes_couvertes: [
+        "Kankan (Express 24h)",
         "Conakry",
         "Kindia",
-        "Labe",
+        "Labé",
         "Mamou",
         "Faranah",
-        "Kankan",
-        "N'Zerekore",
+        "Siguiri",
+        "N'Zérékoré",
+        "Boké",
       ],
-      delaiMoyen: "24 a 48h a Kankan, jusqu'a 48h pour les autres regions",
-      fraisLivraison: "Calcules selon la zone au moment de la commande",
+      delais: "24h à Kankan, 24 à 48h pour les autres préfectures.",
+      frais:
+        "Calculés automatiquement à la caisse selon le poids et la destination.",
     };
   }
 
   return { error: "Outil inconnu" };
 }
 
-// Convertit l'historique du frontend ({role, content} en texte simple, format
-// courant cote client) vers le format "contents" de Gemini.
 function toGeminiContents(messages) {
   return messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
@@ -168,8 +199,6 @@ function toGeminiContents(messages) {
   }));
 }
 
-// Appelle l'API Gemini en REST pur, en essayant chaque modele gratuit dans
-// l'ordre jusqu'a ce qu'un appel reussisse. Leve une erreur si tous echouent.
 async function generateWithFallback(contents) {
   let lastError;
 
@@ -189,7 +218,6 @@ async function generateWithFallback(contents) {
       );
 
       if (!res.ok) {
-        // 429 = quota depasse, 503/500 = surcharge -> on tente le modele suivant
         if ([429, 500, 503].includes(res.status)) {
           lastError = new Error(`${model} indisponible (HTTP ${res.status})`);
           continue;
@@ -208,24 +236,19 @@ async function generateWithFallback(contents) {
     }
   }
 
-  throw lastError || new Error("Tous les modeles Gemini gratuits ont echoue");
+  throw lastError || new Error("Tous les modèles Gemini ont échoué");
 }
 
 export async function POST(request) {
   const { messages, sessionId } = await request.json();
 
-  // Limite basique anti-abus - a affiner avec un rate limit par IP/session
-  // (ex: Upstash Ratelimit) en production.
   if (!Array.isArray(messages) || messages.length > 40) {
-    return NextResponse.json(
-      { error: "Session de chat invalide" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Session invalide" }, { status: 400 });
   }
 
   if (!GEMINI_API_KEY) {
     return NextResponse.json(
-      { error: "Configuration serveur manquante" },
+      { error: "Clé API non configurée" },
       { status: 500 },
     );
   }
@@ -239,21 +262,17 @@ export async function POST(request) {
   } catch (err) {
     console.error("Erreur Gemini:", err);
     return NextResponse.json(
-      { error: "Le service est momentanement indisponible" },
+      { error: "Le service est momentanément indisponible" },
       { status: 503 },
     );
   }
 
-  // Boucle d'appels d'outils tant que le modele en demande (max 5 iterations
-  // de securite pour eviter une boucle infinie en cas de comportement inattendu)
   let iterations = 0;
   while (
     candidate?.content?.parts?.some((p) => p.functionCall) &&
     iterations < 5
   ) {
     const parts = candidate.content.parts;
-
-    // On reinjecte la reponse du modele (y compris les functionCall) dans l'historique
     contents.push({ role: "model", parts });
 
     const functionResponseParts = [];
@@ -278,9 +297,9 @@ export async function POST(request) {
       const { data } = await generateWithFallback(contents);
       candidate = data.candidates?.[0];
     } catch (err) {
-      console.error("Erreur Gemini (suite tool_use):", err);
+      console.error("Erreur Gemini Tool Loop:", err);
       return NextResponse.json(
-        { error: "Le service est momentanement indisponible" },
+        { error: "Le service est momentanément indisponible" },
         { status: 503 },
       );
     }
@@ -291,9 +310,8 @@ export async function POST(request) {
   const textParts = candidate?.content?.parts?.filter((p) => p.text) || [];
   const replyText =
     textParts.map((p) => p.text).join("") ||
-    "Desole, je n'ai pas pu traiter votre demande.";
+    "Désolé, je n'ai pas pu récupérer l'information demandée.";
 
-  // Log pour analytics produit (questions frequentes des clients)
   if (sessionId) {
     try {
       await prisma.chatSession.upsert({
@@ -305,7 +323,7 @@ export async function POST(request) {
         data: { sessionId, role: "assistant", content: replyText },
       });
     } catch (err) {
-      console.error("Log ChatMessage echoue (non bloquant):", err);
+      console.error("Erreur log ChatMessage:", err);
     }
   }
 
