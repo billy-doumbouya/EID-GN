@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ShieldCheck, Truck, Clock, PackageCheck } from "lucide-react";
+import { ShieldCheck, Truck, PackageCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { AddToCartButton } from "./AddToCartButton";
@@ -34,7 +34,9 @@ export async function generateMetadata({ params }) {
   if (!product) return {};
   return {
     title: `${product.name} | EID-GN`,
-    description: product.description.slice(0, 155),
+    description:
+      product.description?.slice(0, 155) ||
+      `Acheter ${product.name} chez EID-GN Kankan.`,
   };
 }
 
@@ -56,7 +58,7 @@ export default async function ProductPage({ params }) {
     offers: {
       "@type": "Offer",
       priceCurrency: "GNF",
-      price: product.priceDetail.toString(),
+      price: product.priceDetail?.toString() || "0",
       availability:
         product.stock > 0
           ? "https://schema.org/InStock"
@@ -111,7 +113,7 @@ export default async function ProductPage({ params }) {
 
               {/* Countdown / Urgence Marketing */}
               <div className="mt-4">
-                <PromoCountdown targetHours={50.5} />
+                <PromoCountdown targetHours={48} />
               </div>
 
               {/* Section Prix & Stock */}
@@ -151,7 +153,7 @@ export default async function ProductPage({ params }) {
               </div>
 
               {/* Compatibilités engins */}
-              {product.compatibility.length > 0 && (
+              {product.compatibility?.length > 0 && (
                 <div className="mt-5 space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-navy-800/50">
                     Engins compatibles
