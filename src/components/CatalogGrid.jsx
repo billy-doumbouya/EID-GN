@@ -25,7 +25,7 @@ async function fetchFavoriteIds() {
   return res.json();
 }
 
-function ProductCardSkeleton() {
+export function ProductCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-xl border border-navy-800/10 bg-white">
       <div className="aspect-square animate-pulse bg-offwhite-200" />
