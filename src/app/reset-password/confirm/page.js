@@ -8,7 +8,7 @@ import {
   Lock,
   Eye,
   EyeOff,
-  KeyCheck,
+  KeyRound,
   ArrowLeft,
   AlertCircle,
   Loader2,
@@ -99,7 +99,7 @@ function ResetPasswordConfirmForm() {
         {/* EN-TÊTE AVEC BADGE EXTRUDÉ */}
         <div className="text-center space-y-3 mb-8">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
-            <KeyCheck size={28} />
+            <KeyRound size={28} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-800">
             Nouveau mot de passe
