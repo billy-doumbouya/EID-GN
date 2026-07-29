@@ -23,7 +23,7 @@ const NAV_LINKS = [
   { href: "/tricycles", label: "Tricycles" },
   { href: "/pieces", label: "Pièces détachées" },
   { href: "/promotions", label: "Promotions" },
-  { href: "/about", label: "À propos" },
+  { href: "/a-propos", label: "À propos" },
 ];
 
 function isActivePath(pathname, href) {
