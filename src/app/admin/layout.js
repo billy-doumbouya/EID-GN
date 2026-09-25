@@ -12,7 +12,7 @@ export default async function AdminLayout({ children }) {
     <div className="flex min-h-screen bg-offwhite-100">
       <AdminSidebar />
       <div className="flex-1 pb-16 lg:pb-0 lg:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-6 md:px-8" data-aos="fade-up">{children}</div>
+        <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 animate-fade-up">{children}</div>
       </div>
     </div>
   );

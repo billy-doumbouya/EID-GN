@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Package, Truck, Receipt, Heart, User } from "lucide-react";
+import { LogoutButton } from "@/components/LogoutButton";
 
 const TABS = [
   { href: "/compte", label: "Tableau de bord", icon: LayoutDashboard },
@@ -14,8 +15,6 @@ const TABS = [
 ];
 
 function isActive(pathname, href) {
-  // "/compte" est la racine : match exact uniquement, sinon elle resterait
-  // active sur toutes les sous-pages (elle est prefixe de toutes les autres).
   return href === "/compte" ? pathname === "/compte" : pathname.startsWith(href);
 }
 
@@ -25,7 +24,7 @@ export function ClientSidebar() {
   return (
     <>
       {/* Desktop : sidebar verticale fixe */}
-      <aside className="fixed inset-y-0 left-0  hidden w-56 border-r border-navy-800/10 bg-white pt-24 lg:block z-50">
+      <aside className="fixed left-0 top-[64px] hidden h-[calc(100vh-64px)] w-56 flex-col border-r border-navy-800/10 bg-white pt-6 lg:flex z-30">
         <nav className="flex flex-col gap-1 px-3">
           {TABS.map((tab) => {
             const active = isActive(pathname, tab.href);
@@ -45,9 +44,13 @@ export function ClientSidebar() {
             );
           })}
         </nav>
+        
+        <div className="mt-auto border-t border-navy-800/5 p-3">
+          <LogoutButton variant="client-sidebar" />
+        </div>
       </aside>
 
-      {/* Mobile : barre de navigation fixee en bas, icones seules + label court */}
+      {/* Mobile : barre de navigation fixee en bas */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-navy-800/10 bg-white py-1.5 lg:hidden">
         {TABS.map((tab) => {
           const active = isActive(pathname, tab.href);
@@ -64,6 +67,7 @@ export function ClientSidebar() {
             </Link>
           );
         })}
+        <LogoutButton variant="mobile" />
       </nav>
     </>
   );

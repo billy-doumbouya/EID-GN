@@ -1,7 +1,8 @@
 // src/app/(admin)/admin/clients/page.js
 import { prisma } from "@/lib/prisma";
 import { cva } from "class-variance-authority";
-import { Mail, MessageCircle } from "lucide-react";
+import { Mail, MessageCircle, Ban } from "lucide-react";
+import { ClientActionButtons } from "@/components/admin/ClientActionButtons";
 
 export const metadata = { title: "Clients" };
 
@@ -101,13 +102,15 @@ export default async function AdminClientsPage({ searchParams }) {
                   <th className="px-4 py-2">Telephone</th>
                   <th className="px-4 py-2">Commandes</th>
                   <th className="px-4 py-2">Opt-in</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {clients.map((c) => (
-                  <tr key={c.id} className="border-t border-navy-800/5">
-                    <td className="px-4 py-2 font-medium text-navy-900">
+                  <tr key={c.id} className={`border-t border-navy-800/5 ${c.isSuspended ? "bg-red-50/50" : ""}`}>
+                    <td className="px-4 py-2 font-medium text-navy-900 flex items-center gap-2">
                       {c.fullName}
+                      {c.isSuspended && <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[10px] font-bold text-danger">SUSPENDU</span>}
                     </td>
                     <td className="px-4 py-2 text-navy-800/70">{c.email}</td>
                     <td className="px-4 py-2 text-navy-800/70">
@@ -120,6 +123,9 @@ export default async function AdminClientsPage({ searchParams }) {
                         whatsapp={c.optInWhatsapp}
                       />
                     </td>
+                    <td className="px-4 py-2 text-right">
+                      <ClientActionButtons client={c} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -131,17 +137,23 @@ export default async function AdminClientsPage({ searchParams }) {
             {clients.map((c) => (
               <div
                 key={c.id}
-                className="rounded-xl border border-navy-800/10 bg-white p-4"
+                className={`rounded-xl border border-navy-800/10 bg-white p-4 ${c.isSuspended ? "opacity-75" : ""}`}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-navy-900">{c.fullName}</p>
+                    <p className="font-medium text-navy-900 flex items-center gap-2">
+                      {c.fullName}
+                      {c.isSuspended && <span className="rounded bg-danger/10 px-1.5 py-0.5 text-[10px] font-bold text-danger">SUSPENDU</span>}
+                    </p>
                     <p className="mt-0.5 text-xs text-navy-800/60">{c.email}</p>
                     <p className="text-xs text-navy-800/60">{c.phone || "—"}</p>
                   </div>
-                  <span className="rounded-full bg-offwhite-200 px-2 py-1 text-xs font-medium text-navy-900">
-                    {c._count.orders} cmd
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <ClientActionButtons client={c} />
+                    <span className="rounded-full bg-offwhite-200 px-2 py-1 text-xs font-medium text-navy-900">
+                      {c._count.orders} cmd
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-3">
                   <OptinBadges

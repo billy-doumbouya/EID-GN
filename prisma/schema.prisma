@@ -70,6 +70,8 @@ model User {
   fullName      String
   role          Role          @default(CLIENT)
   customerType  CustomerType  @default(DETAIL) // Détermine si le client voit les prix Gros ou Détail
+  avatarUrl     String?       // Image de profil pour les admins/clients
+  isSuspended   Boolean       @default(false)
   
   // Infos pro pour les clients Grossistes (Haute-Guinée)
   companyName   String?       // Nom de la boutique / entreprise
@@ -205,7 +207,7 @@ model Order {
   id              String      @id @default(cuid())
   orderNumber     String      @unique // ex: CMD-2026-KANKAN-001
   userId          String?
-  user            User?       @relation(fields: [userId], references: [id])
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   addressId       String?
   address         Address?    @relation(fields: [addressId], references: [id])
   sessionId       String? 
@@ -325,7 +327,7 @@ model WhatsappBroadcast {
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   messages ChatMessage[]
 }

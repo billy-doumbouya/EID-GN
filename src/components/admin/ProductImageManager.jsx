@@ -1,33 +1,36 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Star, Trash2, Upload, Loader2 } from "lucide-react";
+import { Star, Trash2, Upload, Loader2, Link as LinkIcon } from "lucide-react";
+import { ConfirmModal } from "../common/ConfirmModal";
+import { CldUploadWidget } from "next-cloudinary";
 
 export function ProductImageManager({ productId, initialImages }) {
   const [images, setImages] = useState(initialImages || []);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
-  const fileInputRef = useRef(null);
 
-  async function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // Gere l'ajout de l'image (recuperee via URL de Cloudinary) a notre BDD
+  async function handleUploadSuccess(result) {
+    if (result.event !== "success") return;
+    
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const url = result.info.secure_url;
+      const publicId = result.info.public_id;
 
       const res = await fetch(`/api/products/${productId}/images`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, publicId }),
       });
+      
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Erreur lors de l'upload");
+        toast.error(data.error || "Erreur lors de l'enregistrement de l'image");
         return;
       }
 
@@ -37,19 +40,20 @@ export function ProductImageManager({ productId, initialImages }) {
         ),
         data,
       ]);
-      toast.success("Image ajoutee");
+      toast.success("Image ajoutee avec succes");
     } catch (err) {
       console.error(err);
       toast.error("Erreur reseau lors de l'upload");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  async function handleDelete(imageId) {
-    const confirmed = window.confirm("Supprimer cette image ?");
-    if (!confirmed) return;
+  const [imageToDelete, setImageToDelete] = useState(null);
+
+  async function handleDeleteConfirm() {
+    if (!imageToDelete) return;
+    const imageId = imageToDelete;
 
     setPendingActionId(imageId);
     try {
@@ -67,8 +71,6 @@ export function ProductImageManager({ productId, initialImages }) {
         const remaining = prev.filter((img) => img.id !== imageId);
         const deletedWasPrimary = prev.find((img) => img.id === imageId)?.isPrimary;
         if (deletedWasPrimary && remaining.length > 0) {
-          // Reflete cote client la promotion automatique faite en base
-          // (image restante la plus ancienne devient primaire).
           const sorted = [...remaining].sort((a, b) => a.position - b.position);
           sorted[0].isPrimary = true;
           return sorted;
@@ -81,6 +83,7 @@ export function ProductImageManager({ productId, initialImages }) {
       toast.error("Erreur reseau");
     } finally {
       setPendingActionId(null);
+      setImageToDelete(null);
     }
   }
 
@@ -112,22 +115,35 @@ export function ProductImageManager({ productId, initialImages }) {
     <div className="rounded-xl border border-navy-800/10 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-navy-900">Images</h2>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-navy-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-navy-900/80">
-          {isUploading ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Upload size={14} />
-          )}
-          Ajouter une image
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
-            disabled={isUploading}
-            className="hidden"
-          />
-        </label>
+        
+        <CldUploadWidget
+          uploadPreset="eid_gn_products"
+          options={{
+            sources: ['local', 'url', 'camera', 'google_drive', 'dropbox', 'unsplash'],
+            multiple: true,
+            maxFiles: 5
+          }}
+          onSuccess={handleUploadSuccess}
+          onOpen={() => console.log('Widget ouvert')}
+        >
+          {({ open }) => {
+            return (
+              <button
+                type="button"
+                onClick={() => open()}
+                disabled={isUploading}
+                className="flex items-center gap-2 rounded-lg bg-navy-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-navy-900/80 disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Upload size={14} />
+                )}
+                Ajouter une image
+              </button>
+            );
+          }}
+        </CldUploadWidget>
       </div>
 
       {images.length === 0 ? (
@@ -165,7 +181,7 @@ export function ProductImageManager({ productId, initialImages }) {
                   </button>
                 )}
                 <button
-                  onClick={() => handleDelete(img.id)}
+                  onClick={() => setImageToDelete(img.id)}
                   disabled={pendingActionId === img.id}
                   title="Supprimer"
                   className="rounded-full bg-white p-1.5 text-danger hover:bg-danger hover:text-white disabled:opacity-50"
@@ -177,6 +193,15 @@ export function ProductImageManager({ productId, initialImages }) {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!imageToDelete}
+        onClose={() => setImageToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Supprimer l'image ?"
+        description="Cette action est irréversible."
+        isLoading={!!pendingActionId}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 import { Download } from "lucide-react";
 
@@ -7,15 +8,16 @@ export const metadata = { title: "Mes recus" };
 
 export default async function ReceiptsPage() {
   const session = await getCurrentUser();
+
+  if (!session) {
+    redirect("/login?next=/compte/recus");
+  }
+
   const receipts = await prisma.receipt.findMany({
     where: { order: { userId: session.sub } },
     include: { order: true },
     orderBy: { createdAt: "desc" },
   });
-
-  if (!session) {
-    redirect("/connexion?next=/compte/mes-recus");
-  }
 
   if (receipts.length === 0) {
     return (

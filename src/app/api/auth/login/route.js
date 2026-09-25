@@ -20,6 +20,10 @@ export async function POST(request) {
     return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 });
   }
 
+  if (user.isSuspended) {
+    return NextResponse.json({ error: "Votre compte a été suspendu par un administrateur." }, { status: 403 });
+  }
+
   const token = signSessionToken(user);
   await setSessionCookie(token);
 

@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { DeactivateButton } from "@/components/admin/DeactivateButton";
+import { PromotionActionMenu } from "@/components/admin/PromotionActionMenu";
 
 export const metadata = { title: "Promotions" };
 
@@ -150,9 +150,7 @@ export default async function PromotionsAdminPage({ searchParams }) {
                         <StatusBadge status={d.status} />
                       </td>
                       <td className="px-4 py-2 text-right">
-                        {d.status !== "EXPIREE" && (
-                          <DeactivateButton discountId={d.id} />
-                        )}
+                        <PromotionActionMenu discount={d} />
                       </td>
                     </tr>
                   );
@@ -194,9 +192,7 @@ export default async function PromotionsAdminPage({ searchParams }) {
                         .filter(Boolean)
                         .join(" + ")}
                     </span>
-                    {d.status !== "EXPIREE" && (
-                      <DeactivateButton discountId={d.id} />
-                    )}
+                    <PromotionActionMenu discount={d} />
                   </div>
                 </div>
               );

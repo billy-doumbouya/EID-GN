@@ -4,6 +4,7 @@ import { orderCreateSchema } from "@/lib/validators";
 import { createPayment } from "@/lib/payments";
 import { computePrice } from "@/lib/pricing/computePrice";
 import { getCurrentUser } from "@/lib/auth";
+import crypto from "crypto";
 
 const RESERVATION_MINUTES = 15;
 const PAYMENT_RETRY_ATTEMPTS = 3;
@@ -11,9 +12,7 @@ const PAYMENT_RETRY_BASE_DELAY_MS = 500;
 
 function generateOrderNumber() {
   const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 100000)
-    .toString()
-    .padStart(5, "0");
+  const rand = crypto.randomBytes(4).toString("hex").toUpperCase();
   return `CMD-${year}-KANKAN-${rand}`;
 }
 
@@ -131,6 +130,23 @@ export async function POST(request) {
 
   const sessionId = request.headers.get("x-session-id") || crypto.randomUUID();
   const now = new Date();
+
+  // IDEMPOTENCY CHECK
+  // Evite de creer deux commandes pour le meme panier / meme clic multiple
+  const existingOrder = await prisma.order.findFirst({
+    where: { sessionId },
+    include: { payments: { take: 1, orderBy: { createdAt: "desc" } } }
+  });
+  if (existingOrder) {
+    // Si la commande existe deja, on renvoie simplement son numero.
+    // Le front pourra reprendre le paiement si existant.
+    return NextResponse.json({
+      orderNumber: existingOrder.orderNumber,
+      redirectUrl: existingOrder.payments[0]?.status === "EN_ATTENTE" 
+        ? `/checkout/confirmation?order=${existingOrder.orderNumber}` // Fallback
+        : null
+    });
+  }
 
   try {
     // Un client connecte ne peut utiliser qu'une adresse qui lui appartient

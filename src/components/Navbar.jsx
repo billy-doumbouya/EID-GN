@@ -15,8 +15,11 @@ import {
   ShieldCheck,
   Loader2,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
+
+import { AdminUserMenu } from "@/components/admin/AdminUserMenu";
 
 const NAV_LINKS = [
   { href: "/motos", label: "Motos" },
@@ -36,7 +39,6 @@ async function fetchCurrentUser() {
   return res.json();
 }
 
-// Fetcher pour la recherche temps réel
 async function searchProducts(searchTerm) {
   if (!searchTerm || searchTerm.trim().length < 2)
     return { products: [], pagination: { total: 0 } };
@@ -45,6 +47,89 @@ async function searchProducts(searchTerm) {
   );
   if (!res.ok) throw new Error("Erreur recherche");
   return res.json();
+}
+
+// Notification Bell for Admins
+function AdminNotificationBell() {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Polling simulé pour les alertes urgentes / base de données
+  useEffect(() => {
+    // Dans un cas de prod, on ferait un fetch("/api/admin/notifications") toutes les X secondes
+    // Ici, on simule l'arrivée de notifications pour l'audit et on demande la permission du navigateur
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const interval = setInterval(() => {
+      // Simulation: Alerte rupture de stock occasionnelle (10% de chance toutes les 30s)
+      if (Math.random() > 0.9) {
+        const newNotif = {
+          id: Date.now(),
+          title: "Alerte Stock",
+          message: "Un produit vient de passer en rupture de stock.",
+          time: new Date().toLocaleTimeString(),
+        };
+        setNotifications((prev) => [newNotif, ...prev].slice(0, 5));
+        setUnreadCount((c) => c + 1);
+
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(newNotif.title, { body: newNotif.message });
+        }
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setUnreadCount(0);
+        }}
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-offwhite-200/50 text-navy-800 transition-all hover:bg-offwhite-200 hover:text-mechanic-500"
+        aria-label="Notifications"
+      >
+        <Bell size={18} />
+        {unreadCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl bg-white shadow-xl border border-navy-800/10 z-50">
+          <div className="bg-navy-900 px-4 py-3">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+              Alertes Système
+            </h3>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-2">
+            {notifications.length === 0 ? (
+              <p className="p-4 text-center text-xs text-navy-800/50">
+                Aucune alerte urgente.
+              </p>
+            ) : (
+              notifications.map((notif) => (
+                <div key={notif.id} className="mb-2 rounded-lg bg-offwhite-100 p-3 last:mb-0 border border-navy-800/5">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-bold text-danger">{notif.title}</span>
+                    <span className="text-[9px] font-medium text-navy-800/40">{notif.time}</span>
+                  </div>
+                  <p className="text-[11px] text-navy-800/70">{notif.message}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Navbar() {
@@ -58,7 +143,6 @@ export function Navbar() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  // Debounce du champ de recherche (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -70,7 +154,6 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Fermer le dropdown lors des clics en dehors
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -81,7 +164,6 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fermer le menu mobile/dropdown lors des changements de page
   useEffect(() => {
     setIsDropdownOpen(false);
     setMobileOpen(false);
@@ -96,7 +178,6 @@ export function Navbar() {
   });
   const isAdmin = userData?.user?.role === "ADMIN";
 
-  // Requéte de recherche dynamique
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ["live-search", debouncedQuery],
     queryFn: () => searchProducts(debouncedQuery),
@@ -115,7 +196,6 @@ export function Navbar() {
   const handleSelectProduct = (product) => {
     setIsDropdownOpen(false);
     setSearchQuery("");
-    // Ajuster le chemin selon la structure de tes fiches produits (ex: /pieces/id ou /products/slug)
     router.push(`/products/${product.slug}`);
   };
 
@@ -123,24 +203,27 @@ export function Navbar() {
   const totalResults = searchResults?.pagination?.total || 0;
 
   return (
-    <header className="sticky top-0 z-40 bg-[#e6eef8] transition-all shadow-[0_10px_20px_#c3cad3,0_5px_10px_#ffffff]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-        {/* LOGO EN RELIEF */}
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md transition-all shadow-sm border-b border-navy-800/5">
+      <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+        {/* LOGO */}
         <Link
           href="/"
-          className="shrink-0 overflow-hidden rounded-full p-1 bg-[#e6eef8] shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] transition-all active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
+          className="shrink-0 flex items-center transition-opacity hover:opacity-80"
         >
           <Image
             src="/logo.png"
             alt="EID-GN"
-            width={32}
-            height={32}
-            className="rounded-full"
+            width={36}
+            height={36}
+            className="rounded-full bg-navy-900"
           />
+          <span className="ml-2 hidden font-display text-lg font-bold text-navy-900 sm:block">
+            EID-GN
+          </span>
         </Link>
 
         {/* NAVIGATION DESKTOP */}
-        <nav className="hidden items-center gap-2 lg:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((link) => {
             const active = isActivePath(pathname, link.href);
             return (
@@ -148,10 +231,10 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
                   active
-                    ? "bg-[#e6eef8] text-mechanic-500 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"
-                    : "text-slate-600 hover:text-mechanic-500 hover:shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff]"
+                    ? "bg-offwhite-200 text-mechanic-500"
+                    : "text-navy-800/70 hover:bg-offwhite-100 hover:text-navy-900"
                 }`}
               >
                 {link.label}
@@ -161,18 +244,12 @@ export function Navbar() {
         </nav>
 
         {/* BARRE DE RECHERCHE TEMPS RÉEL (DESKTOP) */}
-        <div
-          ref={searchRef}
-          className="relative hidden flex-1 max-w-xs md:block"
-        >
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative flex items-center"
-          >
+        <div ref={searchRef} className="relative hidden flex-1 max-w-sm md:block">
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center">
             <button
               type="submit"
               aria-label="Rechercher"
-              className="absolute left-3.5 text-slate-400 hover:text-mechanic-500 transition-colors z-10"
+              className="absolute left-3.5 text-navy-800/40 hover:text-mechanic-500 transition-colors z-10"
             >
               {isSearching ? (
                 <Loader2 size={16} className="animate-spin text-mechanic-500" />
@@ -188,8 +265,8 @@ export function Navbar() {
                 setSearchQuery(e.target.value);
                 setIsDropdownOpen(true);
               }}
-              placeholder="Rechercher une pièce, moto..."
-              className="w-full rounded-xl bg-[#e6eef8] py-2 pl-10 pr-8 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] focus:shadow-[inset_4px_4px_8px_#bdc4ce,inset_-4px_-4px_8px_#ffffff]"
+              placeholder="Rechercher une pièce..."
+              className="w-full rounded-full bg-offwhite-200/50 py-2.5 pl-10 pr-8 text-xs font-medium text-navy-900 placeholder:text-navy-800/40 border border-transparent transition-all focus:bg-white focus:border-mechanic-500 focus:ring-4 focus:ring-mechanic-500/10 outline-none"
             />
             {searchQuery && (
               <button
@@ -198,25 +275,25 @@ export function Navbar() {
                   setSearchQuery("");
                   setIsDropdownOpen(false);
                 }}
-                className="absolute right-3 text-slate-400 hover:text-slate-600 z-10"
+                className="absolute right-3 text-navy-800/40 hover:text-navy-900 z-10"
               >
                 <X size={14} />
               </button>
             )}
           </form>
 
-          {/* MENUS DÉROULANT DES RÉSULTATS (TEMPS RÉEL) */}
+          {/* MENUS DÉROULANT DES RÉSULTATS */}
           {isDropdownOpen && debouncedQuery.trim().length >= 2 && (
-            <div className="absolute left-0 right-0 top-full mt-3 overflow-hidden rounded-2xl bg-[#e6eef8] p-2 shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff] z-50 border border-slate-200/50">
+            <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-xl bg-white p-2 shadow-xl border border-navy-800/5 z-50">
               {isSearching && (
-                <div className="p-4 text-center text-xs font-medium text-slate-500">
+                <div className="p-4 text-center text-xs font-medium text-navy-800/50">
                   Recherche en cours...
                 </div>
               )}
 
               {!isSearching && productsList.length === 0 && (
-                <div className="p-4 text-center text-xs font-medium text-slate-500">
-                  Aucun produit trouvé pour « {debouncedQuery} »
+                <div className="p-4 text-center text-xs font-medium text-navy-800/50">
+                  Aucun résultat pour « {debouncedQuery} »
                 </div>
               )}
 
@@ -226,9 +303,9 @@ export function Navbar() {
                     <button
                       key={product.id}
                       onClick={() => handleSelectProduct(product)}
-                      className="flex items-center gap-3 rounded-xl p-2 text-left transition-all hover:bg-[#dce6f2] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
+                      className="flex items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-offwhite-100"
                     >
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#e6eef8] shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-offwhite-200">
                         <Image
                           src={product.images?.[0]?.url || "/placeholder.png"}
                           alt={product.name}
@@ -237,7 +314,7 @@ export function Navbar() {
                         />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-xs font-bold text-slate-700">
+                        <p className="truncate text-xs font-bold text-navy-900">
                           {product.name}
                         </p>
                         <p className="text-[10px] font-semibold text-mechanic-500">
@@ -249,7 +326,7 @@ export function Navbar() {
 
                   <button
                     onClick={handleSearchSubmit}
-                    className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-[#e6eef8] py-2 text-xs font-bold text-mechanic-500 shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] hover:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] transition-all"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-offwhite-200 py-2 text-xs font-bold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white"
                   >
                     <span>Voir les {totalResults} résultats</span>
                     <ArrowRight size={14} />
@@ -261,41 +338,34 @@ export function Navbar() {
         </div>
 
         {/* ACTIONS & ICONES */}
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="hidden items-center gap-1.5 rounded-xl bg-[#e6eef8] px-3.5 py-2 text-xs font-bold text-mechanic-500 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] hover:shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] md:flex transition-all"
-            >
-              <ShieldCheck size={16} /> Admin
-            </Link>
-          )}
+        <div className="flex items-center gap-1.5">
+          {isAdmin && <AdminNotificationBell />}
 
-          {!isAdmin && (
-            <Link
-              href="/cart"
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-700 transition-all shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] hover:text-mechanic-500 hover:shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
-              aria-label="Panier"
-            >
-              <ShoppingCart size={18} />
-              {mounted && itemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-mechanic-500 text-[10px] font-bold text-white shadow-sm">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
-          )}
+          {isAdmin && <AdminUserMenu user={userData?.user} />}
+
+          <Link
+            href="/cart"
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-offwhite-200/50 text-navy-800 transition-all hover:bg-offwhite-200 hover:text-mechanic-500"
+            aria-label="Panier"
+          >
+            <ShoppingCart size={18} />
+            {mounted && itemCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mechanic-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
+                {itemCount}
+              </span>
+            )}
+          </Link>
 
           <Link
             href="/compte"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-700 transition-all shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] hover:text-mechanic-500 hover:shadow-[2px_2px_4px_#c3cad3,-2px_-2px_4px_#ffffff] active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-offwhite-200/50 text-navy-800 transition-all hover:bg-offwhite-200 hover:text-mechanic-500"
             aria-label="Mon compte"
           >
             <User size={18} />
           </Link>
 
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e6eef8] text-slate-700 transition-all shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff] hover:text-mechanic-500 active:shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff] lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-offwhite-200/50 text-navy-800 transition-all hover:bg-offwhite-200 hover:text-mechanic-500 lg:hidden"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Menu"
           >
@@ -306,13 +376,10 @@ export function Navbar() {
 
       {/* NAVIGATION ET RECHERCHE MOBILE */}
       {mobileOpen && (
-        <nav className="flex flex-col gap-3 bg-[#e6eef8] px-6 py-4 border-t border-slate-300/40 lg:hidden shadow-[inset_0_4px_6px_#c3cad3]">
-          <form onSubmit={handleSearchSubmit} className="w-full">
+        <nav className="flex flex-col gap-2 bg-white px-6 py-4 border-t border-navy-800/5 lg:hidden shadow-lg">
+          <form onSubmit={handleSearchSubmit} className="w-full mb-2">
             <div className="relative w-full flex items-center">
-              <button
-                type="submit"
-                className="absolute left-3.5 text-slate-400"
-              >
+              <button type="submit" className="absolute left-3.5 text-navy-800/40">
                 <Search size={16} />
               </button>
               <input
@@ -320,7 +387,7 @@ export function Navbar() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher une pièce..."
-                className="w-full rounded-xl bg-[#e6eef8] py-2.5 pl-10 pr-4 text-xs font-medium text-slate-700 outline-none shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"
+                className="w-full rounded-xl bg-offwhite-200/50 py-3 pl-10 pr-4 text-xs font-medium text-navy-900 outline-none focus:ring-2 focus:ring-mechanic-500/20"
               />
             </div>
           </form>
@@ -328,27 +395,25 @@ export function Navbar() {
           {isAdmin && (
             <Link
               href="/admin"
-              className="flex items-center gap-2 rounded-xl bg-[#e6eef8] px-4 py-3 text-xs font-bold text-mechanic-500 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff]"
+              className="flex items-center gap-2 rounded-xl bg-navy-900 px-4 py-3 text-xs font-bold text-white"
               onClick={() => setMobileOpen(false)}
             >
               <ShieldCheck size={16} /> Espace Admin
             </Link>
           )}
 
-          {!isAdmin && (
-            <Link
-              href="/cart"
-              className="flex items-center justify-between rounded-xl bg-[#e6eef8] px-4 py-3 text-xs font-bold text-slate-700 shadow-[4px_4px_8px_#c3cad3,-4px_-4px_8px_#ffffff]"
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>Mon Panier</span>
-              {itemCount > 0 && (
-                <span className="rounded-full bg-mechanic-500 px-2 py-0.5 text-[10px] text-white">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
-          )}
+          <Link
+            href="/cart"
+            className="flex items-center justify-between rounded-xl bg-offwhite-200/50 px-4 py-3 text-xs font-bold text-navy-900"
+            onClick={() => setMobileOpen(false)}
+          >
+            <span>Mon Panier</span>
+            {itemCount > 0 && (
+              <span className="rounded-full bg-mechanic-500 px-2 py-0.5 text-[10px] text-white">
+                {itemCount}
+              </span>
+            )}
+          </Link>
 
           {NAV_LINKS.map((link) => {
             const active = isActivePath(pathname, link.href);
@@ -360,8 +425,8 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className={`rounded-xl px-4 py-3 text-xs font-bold transition-all ${
                   active
-                    ? "bg-[#e6eef8] text-mechanic-500 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]"
-                    : "text-slate-600 hover:text-mechanic-500"
+                    ? "bg-mechanic-500/10 text-mechanic-500"
+                    : "text-navy-800/70 hover:bg-offwhite-100"
                 }`}
               >
                 {link.label}

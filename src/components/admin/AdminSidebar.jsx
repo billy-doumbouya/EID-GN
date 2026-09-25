@@ -35,7 +35,7 @@ export function AdminSidebar() {
   return (
     <>
       {/* Desktop : sidebar fixe */}
-      <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-navy-800/10 bg-navy-900 p-4 lg:flex">
+      <aside className="fixed left-0 top-[64px] hidden h-[calc(100vh-64px)] w-64 flex-col border-r border-navy-800/10 bg-navy-900 p-4 lg:flex z-30">
         <div className="mb-6 px-2 font-display text-lg font-semibold text-white">
           EID-GN <span className="text-mechanic-400">Admin</span>
         </div>

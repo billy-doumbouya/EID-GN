@@ -18,26 +18,26 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 
 const stockLabel = cva(
-  "inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-xl shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]",
+  "inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full",
   {
     variants: {
       status: {
-        out: "text-rose-600 bg-[#e6eef8]",
-        low: "text-amber-600 bg-[#e6eef8]",
-        in: "text-emerald-600 bg-[#e6eef8]",
+        out: "text-danger bg-danger/10",
+        low: "text-amber-600 bg-amber-500/10",
+        in: "text-success bg-success/10",
       },
     },
   },
 );
 
 const addButton = cva(
-  "mt-3 w-full rounded-2xl py-3 text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98]",
+  "mt-3 w-full rounded-xl py-3 text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] border border-transparent",
   {
     variants: {
       status: {
-        out: "cursor-not-allowed bg-[#e6eef8] text-slate-400 shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff] opacity-70",
-        low: "bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]",
-        in: "bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]",
+        out: "cursor-not-allowed bg-offwhite-200 text-navy-800/40",
+        low: "bg-navy-900 text-white hover:bg-mechanic-500 hover:shadow-lg hover:shadow-mechanic-500/30",
+        in: "bg-navy-900 text-white hover:bg-mechanic-500 hover:shadow-lg hover:shadow-mechanic-500/30",
       },
     },
   },
@@ -105,15 +105,15 @@ export function ProductCard({ product, isFavorited = false }) {
   return (
     <div
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-3xl bg-[#e6eef8] p-3.5",
-        "shadow-[8px_8px_16px_#c3cad3,-8px_-8px_16px_#ffffff]",
-        "transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff]",
+        "group relative flex flex-col overflow-hidden rounded-2xl bg-white p-3.5",
+        "border border-navy-800/5 shadow-sm",
+        "transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:border-navy-800/10 hover:shadow-navy-900/5",
       )}
     >
       {/* ZONE IMAGE / CARROUSEL */}
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-[#e6eef8] shadow-[inset_4px_4px_8px_#c3cad3,inset_-4px_-4px_8px_#ffffff]"
+        className="relative block aspect-square w-full overflow-hidden rounded-xl bg-offwhite-100"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -161,7 +161,7 @@ export function ProductCard({ product, isFavorited = false }) {
 
         {/* Badge réduction Soft UI */}
         {compareAtPrice && (
-          <span className="absolute left-2.5 top-2.5 z-10 rounded-xl bg-[#e6eef8] px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase text-rose-600 shadow-[3px_3px_6px_#c3cad3,-3px_-3px_6px_#ffffff]">
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-danger px-2 py-1 text-[10px] font-bold tracking-wider uppercase text-white shadow-sm">
             -{Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}%
           </span>
         )}
@@ -227,12 +227,9 @@ export function ProductCard({ product, isFavorited = false }) {
         .product-card-swiper .swiper-pagination-bullet {
           width: 6px;
           height: 6px;
-          background: #e6eef8;
-          opacity: 0.7;
+          background: #1a2332;
+          opacity: 0.2;
           margin: 0 3px !important;
-          box-shadow:
-            1px 1px 3px #c3cad3,
-            -1px -1px 3px #ffffff;
         }
         .product-card-swiper .swiper-pagination-bullet-active {
           opacity: 1;

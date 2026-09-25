@@ -42,7 +42,7 @@ export async function confirmOrderPayment(orderId) {
       return tx.order.update({
         where: { id: orderId },
         data: { status: "PAYEE" },
-        include: { items: { include: { product: true } }, user: true },
+        include: { items: { include: { product: true } }, user: true, address: true },
       });
     },
     { maxWait: 10000, timeout: 15000 },

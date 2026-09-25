@@ -1,6 +1,6 @@
 // src/app/(admin)/admin/promotions/nouvelle/page.js
 import { prisma } from "@/lib/prisma";
-import { CreatePromotionForm } from "@/components/admin/CreatePromotionForm";
+import { PromotionForm } from "@/components/admin/PromotionForm";
 
 export const metadata = { title: "Nouvelle promotion" };
 
@@ -17,5 +17,5 @@ export default async function NewPromotionPage() {
     }),
   ]);
 
-  return <CreatePromotionForm products={products} categories={categories} />;
+  return <PromotionForm mode="create" products={products} categories={categories} />;
 }

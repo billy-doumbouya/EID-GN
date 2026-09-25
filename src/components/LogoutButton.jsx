@@ -15,13 +15,13 @@ export function LogoutButton({ variant = "sidebar" }) {
     } catch (err) {
       console.error("Erreur lors de la deconnexion:", err);
     } finally {
-      window.location.href = "/connexion";
+      window.location.href = "/login";
     }
   }
 
   return (
     <>
-      {variant === "sidebar" ? (
+      {variant === "sidebar" && (
         <button
           onClick={() => setIsOpen(true)}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
@@ -29,12 +29,24 @@ export function LogoutButton({ variant = "sidebar" }) {
           <LogOut size={18} />
           Se déconnecter
         </button>
-      ) : (
+      )}
+      
+      {variant === "client-sidebar" && (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex shrink-0 flex-col items-center gap-1 px-2 pb-1 text-[11px] text-navy-800/60"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-danger hover:bg-danger/10"
         >
-          <LogOut size={20} />
+          <LogOut size={17} />
+          Se déconnecter
+        </button>
+      )}
+
+      {variant === "mobile" && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex shrink-0 flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium text-danger"
+        >
+          <LogOut size={19} />
           Sortir
         </button>
       )}

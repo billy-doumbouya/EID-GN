@@ -44,7 +44,22 @@ export async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const decoded = verifySessionToken(token);
+  if (!decoded) return null;
+
+  // Optionnel mais recommandé : vérifier en base si le user est suspendu
+  // On importe dynamiquement prisma pour éviter les cycles si nécessaire, ou on l'importe en haut
+  const { prisma } = await import("@/lib/prisma");
+  const userInDb = await prisma.user.findUnique({
+    where: { id: decoded.sub },
+    select: { isSuspended: true, role: true }
+  });
+
+  if (!userInDb || userInDb.isSuspended) {
+    return null; // Force déconnexion si supprimé ou suspendu
+  }
+
+  return { ...decoded, role: userInDb.role }; // Met à jour le rôle au cas où
 }
 
 export async function clearSessionCookie() {
@@ -62,4 +77,27 @@ export function generateResetToken() {
 
 export function hashResetToken(rawToken) {
   return crypto.createHash("sha256").update(rawToken).digest("hex");
+}
+
+export async function requireAuth() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("UNAUTHORIZED");
+  }
+  return user;
+}
+
+export async function requireAdmin() {
+  const user = await requireAuth();
+  if (user.role !== "ADMIN") {
+    throw new Error("FORBIDDEN");
+  }
+  return user;
+}
+
+export async function requireOwnership(resourceUserId, allowAdmin = true) {
+  const user = await requireAuth();
+  if (user.sub === resourceUserId) return user;
+  if (allowAdmin && user.role === "ADMIN") return user;
+  throw new Error("FORBIDDEN");
 }
