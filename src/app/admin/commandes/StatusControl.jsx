@@ -6,18 +6,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const STATUS_CONFIG = {
-  EN_ATTENTE: { label: "En attente", style: "bg-amber-500/10 text-amber-500" },
-  PAYEE: { label: "Payee", style: "bg-success/10 text-success" },
+  EN_ATTENTE: { label: "En attente", style: "bg-black text-amber-500 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]" },
+  PAYEE: { label: "Payée", style: "bg-black text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" },
   EN_PREPARATION: {
-    label: "En preparation",
-    style: "bg-mechanic-500/10 text-mechanic-500",
+    label: "En préparation",
+    style: "bg-black text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.2)]",
   },
   EXPEDIEE: {
-    label: "Expediee",
-    style: "bg-mechanic-500/10 text-mechanic-500",
+    label: "Expédiée",
+    style: "bg-black text-indigo-400 border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.2)]",
   },
-  LIVREE: { label: "Livree", style: "bg-success/10 text-success" },
-  ANNULEE: { label: "Annulee", style: "bg-danger/10 text-danger" },
+  LIVREE: { label: "Livrée", style: "bg-black text-emerald-500 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]" },
+  ANNULEE: { label: "Annulée", style: "bg-black text-rose-500 border border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]" },
 };
 
 // Doit rester identique a ALLOWED_TRANSITIONS cote serveur (route.js) —
@@ -29,7 +29,7 @@ const ALLOWED_TRANSITIONS = {
   EXPEDIEE: ["LIVREE"],
   LIVREE: [],
   ANNULEE: [],
-  EN_ATTENTE: [],
+  EN_ATTENTE: ["PAYEE", "ANNULEE"],
 };
 
 export function StatusControl({ orderNumber, status }) {
@@ -44,9 +44,9 @@ export function StatusControl({ orderNumber, status }) {
   if (options.length === 0) {
     return (
       <span
-        className={`rounded-full px-2 py-0.5 text-xs font-medium ${config.style}`}
+        className={`rounded-none px-2 py-1 text-[10px] font-mono tracking-wider ${config.style}`}
       >
-        {config.label}
+        [{config.label}]
       </span>
     );
   }
@@ -74,7 +74,7 @@ export function StatusControl({ orderNumber, status }) {
       );
       router.refresh();
     } catch {
-      toast.error("Erreur reseau, reessayez");
+      toast.error("Erreur réseau, réessayez");
     } finally {
       setUpdating(false);
     }
@@ -85,7 +85,7 @@ export function StatusControl({ orderNumber, status }) {
       value={status}
       onChange={handleChange}
       disabled={updating}
-      className={`rounded-full border-0 px-2 py-0.5 text-xs font-medium outline-none disabled:opacity-50 ${config.style}`}
+      className={`rounded-none px-2 py-1 text-[10px] font-mono tracking-wider outline-none disabled:opacity-50 appearance-none bg-black cursor-pointer ${config.style}`}
     >
       <option value={status}>{config.label}</option>
       {options.map((s) => (

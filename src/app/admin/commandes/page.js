@@ -52,7 +52,7 @@ export default async function AdminOrdersPage({ searchParams }) {
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-display text-2xl font-semibold text-navy-900">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-100">
           Commandes
         </h1>
 
@@ -61,15 +61,15 @@ export default async function AdminOrdersPage({ searchParams }) {
             type="text"
             name="q"
             defaultValue={query}
-            placeholder="Numero, client, telephone..."
-            className="w-full rounded-lg border border-navy-800/15 px-3 py-2 text-sm outline-none focus-visible:border-mechanic-500 sm:w-56"
+            placeholder="Numéro, client, téléphone..."
+            className="w-full rounded-none border border-zinc-800 bg-black px-3 py-2 text-sm text-emerald-400 outline-none focus-visible:border-emerald-500 sm:w-56"
           />
           <select
             name="status"
             defaultValue={status}
-            className="rounded-lg border border-navy-800/15 bg-white px-3 py-2 text-sm outline-none"
+            className="rounded-none border border-zinc-800 bg-black px-3 py-2 text-sm text-emerald-400 outline-none"
           >
-            <option value="">Tous statuts</option>
+            <option value="">Tous les statuts</option>
             {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -78,7 +78,7 @@ export default async function AdminOrdersPage({ searchParams }) {
           </select>
           <button
             type="submit"
-            className="rounded-lg bg-navy-900 px-4 py-2 text-sm font-medium text-white hover:bg-mechanic-500"
+            className="rounded-none border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 hover:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all"
           >
             Filtrer
           </button>
@@ -86,50 +86,50 @@ export default async function AdminOrdersPage({ searchParams }) {
       </div>
 
       {orders.length === 0 ? (
-        <div className="rounded-xl border border-navy-800/10 bg-white py-16 text-center">
-          <p className="text-sm text-navy-800/60">
+        <div className="rounded-none border border-zinc-800 bg-black py-16 text-center shadow-[inset_0_0_20px_rgba(0,0,0,1)]">
+          <p className="text-sm text-zinc-500">
             {query || status
-              ? "Aucune commande ne correspond a ces criteres."
+              ? "Aucune commande ne correspond à ces critères."
               : "Aucune commande pour le moment."}
           </p>
         </div>
       ) : (
         <>
           {/* Desktop : table */}
-          <div className="hidden overflow-x-auto rounded-xl border border-navy-800/10 bg-white md:block">
-            <table className="w-full text-sm">
-              <thead className="bg-offwhite-200 text-left text-navy-800/70">
+          <div className="hidden overflow-x-auto rounded-none border border-zinc-800 bg-black md:block shadow-[inset_0_0_20px_rgba(0,0,0,1)]">
+            <table className="w-full text-sm text-zinc-400">
+              <thead className="bg-zinc-950 text-left text-zinc-500 border-b border-zinc-800">
                 <tr>
-                  <th className="px-4 py-2">Numero</th>
-                  <th className="px-4 py-2">Client</th>
-                  <th className="px-4 py-2">Articles</th>
-                  <th className="px-4 py-2">Total</th>
-                  <th className="px-4 py-2">Statut</th>
-                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-3 font-semibold">Numéro</th>
+                  <th className="px-4 py-3 font-semibold">Client</th>
+                  <th className="px-4 py-3 font-semibold">Articles</th>
+                  <th className="px-4 py-3 font-semibold">Total</th>
+                  <th className="px-4 py-3 font-semibold">Statut</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-zinc-800/50">
                 {orders.map((o) => (
-                  <tr key={o.id} className="border-t border-navy-800/5">
-                    <td className="px-4 py-2 font-medium text-navy-900">
+                  <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-300">
                       {o.orderNumber}
                     </td>
-                    <td className="px-4 py-2 text-navy-800/70">
+                    <td className="px-4 py-3">
                       {getCustomerName(o)}
                     </td>
-                    <td className="px-4 py-2 text-navy-800/70">
+                    <td className="px-4 py-3 text-emerald-500">
                       {o.items.length}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       {Number(o.total).toLocaleString("fr-FR")} GNF
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <StatusControl
                         orderNumber={o.orderNumber}
                         status={o.status}
                       />
                     </td>
-                    <td className="px-4 py-2 text-navy-800/50">
+                    <td className="px-4 py-3 text-zinc-500">
                       {new Date(o.createdAt).toLocaleDateString("fr-FR")}
                     </td>
                   </tr>
@@ -143,12 +143,12 @@ export default async function AdminOrdersPage({ searchParams }) {
             {orders.map((o) => (
               <div
                 key={o.id}
-                className="rounded-xl border border-navy-800/10 bg-white p-4"
+                className="rounded-none border border-zinc-800 bg-black p-4 shadow-[inset_0_0_20px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-navy-900">{o.orderNumber}</p>
-                    <p className="mt-0.5 text-xs text-navy-800/60">
+                    <p className="text-sm font-semibold text-zinc-300">{o.orderNumber}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
                       {getCustomerName(o)}
                     </p>
                   </div>

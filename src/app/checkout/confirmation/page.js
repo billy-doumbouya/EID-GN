@@ -7,7 +7,10 @@ export const metadata = { title: "Confirmation de commande" };
 export default async function ConfirmationPage({ searchParams }) {
   const { order: orderNumber } = await searchParams;
   const order = orderNumber
-    ? await prisma.order.findUnique({ where: { orderNumber } })
+    ? await prisma.order.findUnique({
+        where: { orderNumber },
+        include: { payments: { take: 1, orderBy: { createdAt: "desc" } } }
+      })
     : null;
 
   if (!order) {
@@ -30,6 +33,7 @@ export default async function ConfirmationPage({ searchParams }) {
         orderNumber={order.orderNumber}
         initialStatus={order.status}
         total={Number(order.total)}
+        paymentProvider={order.payments[0]?.provider}
       />
       <Link
         href="/compte"

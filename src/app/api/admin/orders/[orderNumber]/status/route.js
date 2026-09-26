@@ -14,6 +14,7 @@ const ALLOWED_TRANSITIONS = {
   EXPEDIEE: ["LIVREE"],
   LIVREE: [],
   ANNULEE: [],
+  EN_ATTENTE: ["PAYEE", "ANNULEE"],
 };
 
 export async function PATCH(request, { params }) {

@@ -14,12 +14,19 @@ export default async function FavoritesPage() {
     redirect("/connexion?next=/compte/favoris");
   }
 
+  const now = new Date();
+  const activeWindow = { validFrom: { lte: now }, validTo: { gte: now } };
+
   const favorites = await prisma.favorite.findMany({
     where: { userId: session.sub },
     orderBy: { createdAt: "desc" },
     include: {
       product: {
-        include: { images: { where: { isPrimary: true }, take: 1 } },
+        include: { 
+          images: true,
+          discounts: { where: activeWindow },
+          category: { include: { discounts: { where: activeWindow } } },
+        },
       },
     },
   });
@@ -79,17 +86,17 @@ export default async function FavoritesPage() {
       ) : (
         <div className="rounded-2xl border border-navy-800/10 bg-white p-6 shadow-sm">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {favorites.map((fav) => (
-              <ProductCard
-                key={fav.id}
-                product={{
-                  ...fav.product,
-                  price: Number(fav.product.priceDetail),
-                  image:
-                    fav.product.images[0]?.url || "/placeholder-product.jpg",
-                }}
-              />
-            ))}
+            {favorites.map((fav) => {
+              // Serialize safely to avoid Decimal errors in Client Components
+              const serializedProduct = JSON.parse(JSON.stringify(fav.product));
+              return (
+                <ProductCard
+                  key={fav.id}
+                  product={serializedProduct}
+                  isFavorited={true}
+                />
+              );
+            })}
           </div>
         </div>
       )}

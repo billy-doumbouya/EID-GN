@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { BlueprintEngine } from "./BlueprintEngine";
+import { HeroBackground } from "./HeroBackground";
 
 const HEADLINE_LINES = [
   "La pièce exacte",
@@ -11,9 +12,9 @@ const HEADLINE_LINES = [
 
 export function AnimatedHero() {
   return (
-    <section className="relative overflow-hidden bg-navy-900 text-white">
+    <section className="relative isolate overflow-hidden bg-gradient-to-b from-navy-900 via-navy-900/95 to-navy-950 text-white">
+      <HeroBackground variant="animated" />
       <div className="absolute inset-0 bg-grid-faint" />
-      <div className="absolute inset-0 bg-gradient-to-b from-navy-900 via-navy-900/95 to-navy-950" />
 
       <div className="relative mx-auto flex max-w-7xl flex-col items-center gap-10 px-6 py-20 md:flex-row md:py-28">
         {/* Texte */}

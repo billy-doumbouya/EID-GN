@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Mail, KeyRound, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { HeroBackground } from "@/components/homePage/HeroBackground";
 
 export default function ResetPasswordRequestPage() {
   const [email, setEmail] = useState("");
@@ -31,8 +32,9 @@ export default function ResetPasswordRequestPage() {
   /* ÉTAT : EMAIL ENVOYÉ */
   if (sent) {
     return (
-      <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
-        <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 sm:p-10 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] space-y-6">
+      <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-[#e6eef8] px-4 py-12 text-slate-700">
+        <HeroBackground variant="auth" />
+        <div className="relative w-full max-w-md space-y-6 rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] sm:p-10">
           {/* BADGE SUCCÈS EXTRUDÉ */}
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-emerald-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
             <CheckCircle2 size={32} />
@@ -64,8 +66,9 @@ export default function ResetPasswordRequestPage() {
 
   /* FORMULAIRE DE DEMANDE */
   return (
-    <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
-      <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 sm:p-10 shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff]">
+    <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-[#e6eef8] px-4 py-12 text-slate-700">
+      <HeroBackground variant="auth" />
+      <div className="relative w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] sm:p-10">
         {/* EN-TÊTE AVEC BADGE EXTRUDÉ */}
         <div className="text-center space-y-3 mb-8">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">

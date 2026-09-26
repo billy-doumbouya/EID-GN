@@ -10,11 +10,13 @@ const FAILED_STATUSES = ["ANNULEE"];
 const POLL_INTERVAL_MS = 4000;
 const MAX_POLLS = 15;
 
-export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
+export function ConfirmationStatus({ orderNumber, initialStatus, total, paymentProvider }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [pollCount, setPollCount] = useState(0);
   const mountedRef = useRef(true);
+
+  const isCOD = paymentProvider === "A_LA_LIVRAISON";
 
   useEffect(() => {
     mountedRef.current = true;
@@ -27,7 +29,8 @@ export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
   const isFailed = FAILED_STATUSES.includes(status);
 
   useEffect(() => {
-    if (isPaid || isFailed || pollCount >= MAX_POLLS) return;
+    // Ne pas vérifier (poll) si c'est paiement à la livraison, ou si déjà payé/échoué
+    if (isPaid || isFailed || pollCount >= MAX_POLLS || isCOD) return;
 
     const delay = pollCount === 0 ? 0 : POLL_INTERVAL_MS;
 
@@ -48,13 +51,13 @@ export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [isPaid, isFailed, pollCount, orderNumber, router]);
+  }, [isPaid, isFailed, pollCount, orderNumber, router, isCOD]);
 
   return (
     <div className="mx-auto my-8 max-w-md rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[12px_12px_24px_#c3cad3,-12px_-12px_24px_#ffffff]">
       {/* BADGE D'ICÔNE SOFT UI */}
       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-[#e6eef8] shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
-        {isPaid ? (
+        {isPaid || isCOD ? (
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] shadow-[inset_3px_3px_6px_#c3cad3,inset_-3px_-3px_6px_#ffffff]">
             <CheckCircle2 size={40} className="text-emerald-500" />
           </div>
@@ -71,11 +74,13 @@ export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
 
       {/* TITRE ET ÉTAT */}
       <h1 className="mt-6 font-display text-xl font-bold text-slate-800">
-        {isPaid
-          ? "Paiement confirmé"
-          : isFailed
-            ? "Paiement échoué"
-            : "Vérification du paiement"}
+        {isCOD && !isPaid
+          ? "Commande confirmée"
+          : isPaid
+            ? "Paiement confirmé"
+            : isFailed
+              ? "Paiement échoué"
+              : "Vérification du paiement"}
       </h1>
 
       {/* RÉCAPITULATIF DE LA COMMANDE */}
@@ -105,7 +110,13 @@ export function ConfirmationStatus({ orderNumber, initialStatus, total }) {
         </div>
       )}
 
-      {!isPaid && !isFailed && (
+      {isCOD && !isPaid && (
+        <p className="mt-4 text-xs font-medium text-slate-500 leading-relaxed">
+          Merci pour votre commande ! Préparez le montant exact à remettre au livreur lors de la livraison.
+        </p>
+      )}
+
+      {!isPaid && !isFailed && !isCOD && (
         <p className="mt-4 text-xs font-medium text-slate-500 leading-relaxed">
           {pollCount >= MAX_POLLS
             ? "La vérification prend plus de temps que prévu. Vous recevrez une confirmation dès validation de l'opérateur."

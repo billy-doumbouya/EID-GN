@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -13,6 +14,7 @@ const TYPE_OPTIONS = [
 
 export function ProductEditForm({ product, categories }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     name: product.name,
@@ -57,8 +59,9 @@ export function ProductEditForm({ product, categories }) {
         return;
       }
 
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Produit mis a jour");
-      router.refresh();
+      router.push("/admin/produits");
     } catch (err) {
       console.error(err);
       toast.error("Erreur reseau");

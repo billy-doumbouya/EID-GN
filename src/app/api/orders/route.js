@@ -263,14 +263,22 @@ export async function POST(request) {
 
     let payment;
     try {
-      payment = await initiatePaymentWithRetry(paymentProvider, {
-        amount: order.total,
-        orderNumber: order.orderNumber,
-        returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}`,
-        cancelUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}&status=failed`,
-        callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment/webhook/${paymentProvider.toLowerCase()}`,
-        payerNumber: guestPhone || user?.phone,
-      });
+      if (paymentProvider === "A_LA_LIVRAISON") {
+        // Paiement à la livraison : Pas d'appel API, génération d'une réf interne
+        payment = {
+          providerRef: `COD-${order.orderNumber}-${Date.now()}`,
+          redirectUrl: null // Pas de redirection, le front redirigera vers /checkout/confirmation
+        };
+      } else {
+        payment = await initiatePaymentWithRetry(paymentProvider, {
+          amount: order.total,
+          orderNumber: order.orderNumber,
+          returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}`,
+          cancelUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/confirmation?order=${order.orderNumber}&status=failed`,
+          callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment/webhook/${paymentProvider.toLowerCase()}`,
+          payerNumber: guestPhone || user?.phone,
+        });
+      }
 
       await prisma.payment.create({
         data: {

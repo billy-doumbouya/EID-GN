@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import { HeroBackground } from "@/components/homePage/HeroBackground";
 
 function ResetPasswordConfirmForm() {
   const router = useRouter();
@@ -64,8 +65,9 @@ function ResetPasswordConfirmForm() {
   /* ÉTAT : LIEN / JETON INVALIDE */
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
-        <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 sm:p-10 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] space-y-6">
+      <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-[#e6eef8] px-4 py-12 text-slate-700">
+        <HeroBackground variant="auth" />
+        <div className="relative w-full max-w-md space-y-6 rounded-3xl bg-[#e6eef8] p-8 text-center shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] sm:p-10">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-rose-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
             <AlertCircle size={32} />
           </div>
@@ -94,8 +96,9 @@ function ResetPasswordConfirmForm() {
 
   /* FORMULAIRE DE NOUVEAU MOT DE PASSE */
   return (
-    <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center px-4 py-12 text-slate-700">
-      <div className="w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 sm:p-10 shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff]">
+    <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-[#e6eef8] px-4 py-12 text-slate-700">
+      <HeroBackground variant="auth" />
+      <div className="relative w-full max-w-md rounded-3xl bg-[#e6eef8] p-8 shadow-[20px_20px_60px_#c3cad3,-20px_-20px_60px_#ffffff] sm:p-10">
         {/* EN-TÊTE AVEC BADGE EXTRUDÉ */}
         <div className="text-center space-y-3 mb-8">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e6eef8] text-mechanic-500 shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]">
@@ -212,7 +215,8 @@ export default function ResetPasswordConfirmPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#e6eef8] flex items-center justify-center text-slate-500 font-medium text-sm">
+        <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-[#e6eef8] text-sm font-medium text-slate-500">
+          <HeroBackground variant="auth" />
           <div className="flex items-center gap-2">
             <Loader2 size={20} className="animate-spin text-mechanic-500" />
             <span>Chargement...</span>

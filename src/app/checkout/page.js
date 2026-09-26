@@ -164,15 +164,36 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Impossible de créer la commande");
+        let errorMessage = "Impossible de créer la commande";
+        if (data.error) {
+          if (typeof data.error === "object") {
+            // Flatten zod error object into a readable string
+            const msgs = [];
+            if (data.error.formErrors) msgs.push(...data.error.formErrors);
+            if (data.error.fieldErrors) {
+              Object.values(data.error.fieldErrors).forEach((errs) => msgs.push(...errs));
+            }
+            if (msgs.length > 0) errorMessage = msgs.join(", ");
+          } else {
+            errorMessage = data.error;
+          }
+        }
+        
+        toast.error(errorMessage);
         setSubmitting(false);
         return;
       }
 
       clear();
 
-      popupRef.current = window.open(data.redirectUrl, "_blank");
-      setWaitingOrderNumber(data.orderNumber);
+      if (data.redirectUrl) {
+        // Digital payment
+        popupRef.current = window.open(data.redirectUrl, "_blank");
+        setWaitingOrderNumber(data.orderNumber);
+      } else {
+        // Cash on delivery
+        window.location.href = `/checkout/confirmation?order=${data.orderNumber}`;
+      }
     } catch {
       toast.error("Erreur réseau, réessayez");
       setSubmitting(false);
@@ -416,6 +437,31 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </label>
+
+            <label
+              htmlFor="cod-payment"
+              className="flex cursor-pointer flex-col gap-4 rounded-2xl bg-[#e6eef8] p-4 transition-all shadow-[6px_6px_12px_#c3cad3,-6px_-6px_12px_#ffffff]"
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  id="cod-payment"
+                  name="payment"
+                  value="A_LA_LIVRAISON"
+                  checked={paymentProvider === "A_LA_LIVRAISON"}
+                  onChange={() => setPaymentProvider("A_LA_LIVRAISON")}
+                  className="h-4 w-4 accent-mechanic-500 cursor-pointer"
+                />
+                <div>
+                  <span className="block text-xs font-bold text-slate-800">
+                    Paiement à la livraison
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    Payez en espèces lorsque vous recevez votre commande
+                  </span>
+                </div>
               </div>
             </label>
           </div>

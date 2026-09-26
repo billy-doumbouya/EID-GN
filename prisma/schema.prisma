@@ -44,6 +44,7 @@ enum OrderStatus {
 enum PaymentProviderName {
   LENGOPAY
   DJOMY
+  A_LA_LIVRAISON
 }
 
 enum PaymentStatus {

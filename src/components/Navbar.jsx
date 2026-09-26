@@ -54,6 +54,31 @@ function AdminNotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const bellRef = useRef(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event) {
+      if (!bellRef.current?.contains(event.target)) setIsOpen(false);
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setIsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
 
   // Polling simulé pour les alertes urgentes / base de données
   useEffect(() => {
@@ -85,14 +110,16 @@ function AdminNotificationBell() {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={bellRef}>
       <button
         onClick={() => {
-          setIsOpen(!isOpen);
+          setIsOpen((open) => !open);
           setUnreadCount(0);
         }}
         className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-offwhite-200/50 text-navy-800 transition-all hover:bg-offwhite-200 hover:text-mechanic-500"
         aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-controls="admin-system-alerts"
       >
         <Bell size={18} />
         {unreadCount > 0 && (
@@ -103,26 +130,36 @@ function AdminNotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl bg-white shadow-xl border border-navy-800/10 z-50">
-          <div className="bg-navy-900 px-4 py-3">
+        <div
+          id="admin-system-alerts"
+          role="region"
+          aria-label="Alertes système"
+          className="fixed left-3 right-3 top-18 z-50 flex max-h-[calc(100dvh-5.5rem)] w-auto flex-col overflow-hidden rounded-xl border border-navy-800/10 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:rounded-2xl"
+        >
+          <div className="shrink-0 bg-navy-900 px-4 py-3">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider">
               Alertes Système
             </h3>
           </div>
-          <div className="max-h-64 overflow-y-auto p-2">
+          <div className="min-h-0 overflow-y-auto overscroll-contain p-2">
             {notifications.length === 0 ? (
               <p className="p-4 text-center text-xs text-navy-800/50">
                 Aucune alerte urgente.
               </p>
             ) : (
               notifications.map((notif) => (
-                <div key={notif.id} className="mb-2 rounded-lg bg-offwhite-100 p-3 last:mb-0 border border-navy-800/5">
+                <button
+                  key={notif.id}
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="mb-2 block w-full rounded-lg border border-navy-800/5 bg-offwhite-100 p-3 text-left last:mb-0 hover:border-mechanic-500/30 focus-visible:outline-mechanic-500"
+                >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-xs font-bold text-danger">{notif.title}</span>
-                    <span className="text-[9px] font-medium text-navy-800/40">{notif.time}</span>
+                    <span className="ml-2 shrink-0 text-[9px] font-medium text-navy-800/40">{notif.time}</span>
                   </div>
-                  <p className="text-[11px] text-navy-800/70">{notif.message}</p>
-                </div>
+                  <p className="text-left text-[11px] leading-relaxed text-navy-800/70">{notif.message}</p>
+                </button>
               ))
             )}
           </div>
@@ -204,7 +241,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md transition-all shadow-sm border-b border-navy-800/5">
-      <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         {/* LOGO */}
         <Link
           href="/"

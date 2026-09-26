@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { HeroBackground } from "@/components/homePage/HeroBackground";
 
 function LoginForm() {
   const router = useRouter();
@@ -30,7 +31,7 @@ function LoginForm() {
       toast.success("Connexion réussie");
       const explicitRedirect = searchParams.get("redirect");
       router.push(
-        explicitRedirect || (data.role === "ADMIN" ? "/admin" : "/compte"),
+        data.role === "ADMIN" ? "/admin" : explicitRedirect || "/compte",
       );
     } catch {
       toast.error("Erreur réseau, réessayez");
@@ -40,9 +41,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="h-[100dvh] w-full overflow-hidden bg-offwhite-100 flex flex-col items-center justify-center px-6">
+    <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full flex-col items-center justify-center overflow-hidden bg-offwhite-100 px-6">
+      <HeroBackground variant="auth" />
       {/* CONTENEUR PRINCIPAL */}
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-lg border border-navy-800/5">
+      <div className="relative w-full max-w-md rounded-3xl border border-navy-800/5 bg-white p-8 shadow-lg sm:p-10">
         {/* EN-TÊTE */}
         <div className="text-center space-y-2 mb-8">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-navy-900 text-mechanic-500 shadow-sm">
@@ -151,7 +153,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-[100dvh] w-full overflow-hidden bg-offwhite-100 flex items-center justify-center text-navy-800/50 font-medium text-sm">
+        <div className="relative isolate flex min-h-[calc(100dvh-64px)] w-full items-center justify-center overflow-hidden bg-offwhite-100 text-sm font-medium text-navy-800/50">
+          <HeroBackground variant="auth" />
           <div className="flex items-center gap-2">
             <Loader2 size={20} className="animate-spin text-mechanic-500" />
             <span>Chargement...</span>

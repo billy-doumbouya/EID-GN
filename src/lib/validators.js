@@ -55,7 +55,7 @@ export const orderCreateSchema = z.object({
   guestFullName: z.string().optional(),
   guestPhone: z.string().optional(),
   guestEmail: z.string().email().optional(),
-  paymentProvider: z.enum(["LENGOPAY", "DJOMY"]),
+  paymentProvider: z.enum(["LENGOPAY", "DJOMY", "A_LA_LIVRAISON"]),
 });
 
 // Important : LengoPay attend un "amount" en string, pas en number (source d'erreurs 400).

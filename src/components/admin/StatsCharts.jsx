@@ -168,22 +168,22 @@ export function StatsCharts() {
       icon: TrendingUp,
       label: "Chiffre d'affaires",
       value: totalRevenue.toLocaleString("fr-FR") + " GNF",
-      color: "text-mechanic-500",
-      bg: "bg-mechanic-500/10",
+      color: "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
     },
     {
       icon: ShoppingBag,
       label: "Commandes",
       value: totalOrders,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
+      color: "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]",
+      bg: "bg-rose-500/10 border-rose-500/20",
     },
     {
       icon: Package,
       label: "Produits en ligne",
       value: totalProducts,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
+      color: "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]",
+      bg: "bg-cyan-500/10 border-cyan-500/20",
     },
   ];
 
@@ -199,22 +199,24 @@ export function StatsCharts() {
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             whileHover="hover"
-            className="group relative overflow-hidden rounded-xl border border-navy-800/10 bg-white p-5 shadow-sm transition-all"
+            className="group relative overflow-hidden rounded-none border border-zinc-800 bg-black p-5 shadow-[inset_0_0_20px_rgba(0,0,0,1)] transition-all"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-navy-800/50">
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
                   {kpi.label}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-navy-900">
+                <p className="mt-1 font-mono text-2xl font-bold text-zinc-100">
                   {kpi.value}
                 </p>
               </div>
-              <div className={`rounded-full ${kpi.bg} p-3`}>
+              <div className={`border ${kpi.bg} p-3 rounded-none`}>
                 <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
               </div>
             </div>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-mechanic-500/0 via-mechanic-500/50 to-mechanic-500/0 opacity-0 transition-opacity group-hover:opacity-100" />
+            {/* Scanline glow effect */}
+            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] pointer-events-none opacity-20" />
           </motion.div>
         ))}
       </div>

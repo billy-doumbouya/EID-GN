@@ -4,6 +4,7 @@ import Image from "next/image";
 import { GuineaDeliveryMap } from "@/components/GuineaDeliveryMap";
 import { Reveal } from "@/components/motion/Reveal";
 import { StatCounter } from "@/components/stats/AboutStats/StatCounter";
+import { HeroBackground } from "@/components/homePage/HeroBackground";
 
 export const metadata = { title: "À propos" };
 
@@ -59,21 +60,24 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#e6eef8] py-10">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-12 md:py-16">
-        <div className="relative mx-auto max-w-3xl px-6 text-center">
-          <Reveal>
-            <span className="inline-block rounded-full bg-[#e6eef8] px-4 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-mechanic-500 shadow-[inset_2px_2px_5px_#c3cad3,inset_-2px_-2px_5px_#ffffff]">
-              Depuis 2016 à Kankan
-            </span>
-            <h1 className="mt-6 font-display text-3xl font-extrabold leading-tight text-slate-800 md:text-5xl">
-              De l'atelier de Kankan{" "}
-              <span className="text-mechanic-500">à tout le pays</span>
-            </h1>
-            <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600 md:text-base">
-              Une histoire de confiance née quartier par quartier à Kankan, qui
-              livre aujourd'hui l'ensemble des régions de Guinée.
-            </p>
-          </Reveal>
+      <section className="py-12 md:py-16">
+        <div className="relative isolate overflow-hidden">
+          <HeroBackground variant="about" />
+          <div className="relative mx-auto max-w-3xl px-6 text-center">
+            <Reveal>
+              <span className="inline-block rounded-full bg-[#e6eef8] px-4 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-mechanic-500 shadow-[inset_2px_2px_5px_#c3cad3,inset_-2px_-2px_5px_#ffffff]">
+                Depuis 2016 à Kankan
+              </span>
+              <h1 className="mt-6 font-display text-3xl font-extrabold leading-tight text-slate-800 md:text-5xl">
+                De l'atelier de Kankan{" "}
+                <span className="text-mechanic-500">à tout le pays</span>
+              </h1>
+              <p className="mt-4 text-sm font-medium leading-relaxed text-slate-600 md:text-base">
+                Une histoire de confiance née quartier par quartier à Kankan,
+                qui livre aujourd'hui l'ensemble des régions de Guinée.
+              </p>
+            </Reveal>
+          </div>
         </div>
 
         {/* Stats Soft UI */}
