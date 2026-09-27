@@ -1,18 +1,58 @@
-// src/components/homePage/SectionMark.jsx
+import { cn } from "@/lib/utils";
 
-export function SectionMark({ label }) {
+/**
+ * Séparateur de section avec badge central.
+ * Utilise des lignes mécaniques fines (gradient mechanic-500) au lieu de néomorphisme.
+ *
+ * @param {string} label - Texte du badge
+ * @param {('default'|'compact'|'wide')} variant - Style du séparateur
+ * @param {('center'|'left')} align - Alignement du badge
+ * @param {string} className - Classes additionnelles
+ */
+export function SectionMark({
+  label,
+  variant = "default",
+  align = "center",
+  className,
+}) {
   return (
-    <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
-      {/* Rainure neumorphique gauche */}
-      <div className="h-[2px] flex-1 bg-[#e6eef8] shadow-[inset_1px_1px_2px_#c3cad3,1px_1px_1px_#ffffff]" />
+    <div
+      role="heading"
+      aria-level={2}
+      className={cn(
+        "flex items-center gap-4",
+        variant === "compact" && "py-2",
+        variant === "default" && "py-4",
+        variant === "wide" && "py-6",
+        align === "center" && "justify-center text-center",
+        align === "left" && "justify-start text-left",
+        className
+      )}
+    >
+      {/* Ligne mécanique gauche (uniquement en align center) */}
+      {align === "center" && (
+        <div
+          aria-hidden
+          className="h-px flex-1 max-w-[120px] bg-gradient-to-r from-transparent to-mechanic-500/40"
+        />
+      )}
 
-      {/* Badge central encastré (Inset) */}
-      <span className="rounded-full bg-[#e6eef8] px-4 py-1.5 font-mono text-[10px] font-bold tracking-[0.25em] uppercase text-slate-500 shadow-[inset_2px_2px_4px_#c3cad3,inset_-2px_-2px_4px_#ffffff]">
+      {/* Badge central */}
+      <span className="inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-mechanic-400">
+        <span
+          aria-hidden
+          className="h-1 w-1 rounded-full bg-mechanic-500"
+        />
         {label}
       </span>
 
-      {/* Rainure neumorphique droite */}
-      <div className="h-[2px] flex-1 bg-[#e6eef8] shadow-[inset_1px_1px_2px_#c3cad3,1px_1px_1px_#ffffff]" />
+      {/* Ligne mécanique droite */}
+      {align === "center" && (
+        <div
+          aria-hidden
+          className="h-px flex-1 max-w-[120px] bg-gradient-to-l from-transparent to-mechanic-500/40"
+        />
+      )}
     </div>
   );
 }

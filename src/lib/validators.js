@@ -51,10 +51,16 @@ export const orderCreateSchema = z.object({
       }),
     )
     .min(1, "Le panier est vide"),
-  addressId: z.string().optional(),
+  addressId: z.string().optional().nullable(),
+  addressLabel: z.string().optional(),
+  addressQuartier: z.string().optional(),
+  addressVille: z.string().optional(),
+  addressReperes: z.string().optional(),
+  addressTelephone: z.string().optional(),
   guestFullName: z.string().optional(),
   guestPhone: z.string().optional(),
-  guestEmail: z.string().email().optional(),
+  guestEmail: z.string().email().optional().or(z.literal("")).nullable(),
+  createAccount: z.boolean().optional(),
   paymentProvider: z.enum(["LENGOPAY", "DJOMY", "A_LA_LIVRAISON"]),
 });
 

@@ -18,7 +18,7 @@ export default function AdminOverviewPage() {
               Console de supervision
             </h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-400">
-              Pilotage opérationnel de la boutique EID-GN. Toutes les actions sont surveillées.
+              Pilotage opérationnel de la boutique EID-MULTISERVICE. Toutes les actions sont surveillées.
             </p>
           </div>
 

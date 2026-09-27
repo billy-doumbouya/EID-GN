@@ -104,6 +104,11 @@ export async function POST(request) {
   const {
     items,
     addressId,
+    addressLabel,
+    addressQuartier,
+    addressVille,
+    addressReperes,
+    addressTelephone,
     guestFullName,
     guestPhone,
     guestEmail,
@@ -235,17 +240,36 @@ export async function POST(request) {
         const deliveryFee = 0; // TODO: calcul selon zone de livraison
         total += deliveryFee;
 
+        let finalAddressId = addressId || null;
+        if (user && !finalAddressId && addressQuartier) {
+          try {
+            const createdAddr = await tx.address.create({
+              data: {
+                userId: user.id,
+                label: addressLabel || "Adresse de livraison",
+                quartier: addressQuartier,
+                ville: addressVille || "Kankan",
+                reperes: addressReperes || null,
+                telephone: addressTelephone || guestPhone || user.phone || "",
+              },
+            });
+            finalAddressId = createdAddr.id;
+          } catch (e) {
+            console.warn("Erreur creation adresse automatique:", e);
+          }
+        }
+
         return tx.order.create({
           data: {
             orderNumber: generateOrderNumber(),
             userId: user?.id || null,
-            addressId,
+            addressId: finalAddressId,
             sessionId,
             // Champs guest ignores si l'acheteur est connecte : on garde ses
             // infos de compte comme source de verite plutot que de dupliquer.
             guestFullName: user ? null : guestFullName,
             guestPhone: user ? null : guestPhone,
-            guestEmail: user ? null : guestEmail,
+            guestEmail: user ? null : (guestEmail || null),
             customerTypeAtOrder: user?.customerType || "DETAIL",
             deliveryFee,
             total,

@@ -71,6 +71,7 @@ export async function POST(request) {
       lines.push({
         productId,
         name: product.name,
+        slug: product.slug,
         image: product.images[0]?.url || null,
         quantity,
         unitPrice: priced.unitPrice,
@@ -78,12 +79,26 @@ export async function POST(request) {
         isGrosPricing: priced.isGrosPricing,
         discountName: priced.discount?.name || null,
         lineTotal: priced.unitPrice * quantity,
+        availableStock: product.stock,
       });
     }
 
     const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
+    const discount = lines.reduce(
+      (sum, l) => sum + Math.max(0, (l.originalPrice - l.unitPrice) * l.quantity),
+      0
+    );
+    const deliveryFee = 0; // Offerte
+    const total = subtotal + deliveryFee;
 
-    return NextResponse.json({ lines, subtotal, unavailable });
+    return NextResponse.json({
+      lines,
+      subtotal,
+      discount,
+      deliveryFee,
+      total,
+      unavailable,
+    });
   } catch (error) {
     console.error("Erreur POST /api/cart/quote:", error);
     return NextResponse.json(

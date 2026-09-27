@@ -11,7 +11,7 @@ import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { LogoutButton } from "@/components/LogoutButton";
 import { AddressCard } from "@/components/AddressCard";
 
-export const metadata = { title: "Mon profil | EID-GN" };
+export const metadata = { title: "Mon profil | EID-MULTISERVICE" };
 
 function getInitials(fullName) {
   if (!fullName) return "?";

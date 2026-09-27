@@ -36,6 +36,11 @@ export const useCartStore = create(
                 image: product.image,
                 quantity,
                 stock: product.stock,
+                price: product.price,
+                originalPrice: product.originalPrice,
+                slug: product.slug,
+                isOnPromo: product.isOnPromo,
+                discountName: product.discountName,
               },
             ],
           });

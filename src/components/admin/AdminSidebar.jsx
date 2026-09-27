@@ -37,7 +37,7 @@ export function AdminSidebar() {
       {/* Desktop : sidebar fixe */}
       <aside className="fixed left-0 top-[64px] hidden h-[calc(100vh-64px)] w-64 flex-col border-r border-emerald-500/10 bg-black/50 backdrop-blur-xl p-4 lg:flex z-30">
         <div className="mb-6 px-2 font-display text-lg tracking-wide text-zinc-300">
-          EID-GN <span className="text-emerald-400 font-semibold">Admin</span>
+          EID-MULTISERVICE <span className="text-emerald-400 font-semibold">Admin</span>
         </div>
         <nav className="flex flex-col gap-1">
           {LINKS.map(({ href, label, icon: Icon }) => {

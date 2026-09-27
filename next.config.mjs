@@ -27,6 +27,22 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/produit/:slug*",
+        destination: "/products/:slug*",
+      },
+      {
+        source: "/catalogue",
+        destination: "/motos",
+      },
+      {
+        source: "/dashboard/client/commandes/:orderNumber*",
+        destination: "/compte/commandes/:orderNumber*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

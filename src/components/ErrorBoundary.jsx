@@ -1,51 +1,136 @@
 "use client";
 
 import { Component } from "react";
+import { ErrorPage } from "./ErrorPage";
+import { ErrorSection } from "./ErrorSection";
+import { ErrorComponent } from "./ErrorComponent";
 
-// Un Error Boundary DOIT etre un composant classe : les hooks ne permettent
-// pas d'implementer componentDidCatch. C'est le seul endroit du projet ou
-// on ecrit une classe malgre le choix "vanilla JS / hooks" partout ailleurs.
+// ============================================================
+// ERROR BOUNDARY — Composant classe obligatoire
+// Gère 3 niveaux : page / section / composant
+// ============================================================
 export class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = {
+      hasError: false,
+      error: null,
+      info: null,
+      errorId: null,
+    };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return {
+      hasError: true,
+      error,
+      errorId: `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    };
   }
 
   componentDidCatch(error, info) {
-    // Remonte a Sentry si configure, sinon log console
-    if (typeof window !== "undefined" && window.Sentry) {
-      window.Sentry.captureException(error, { extra: info });
+    this.setState({ info });
+
+    // Logging Sentry (import direct, pas window.Sentry)
+    if (process.env.NODE_ENV === "production") {
+      import("@sentry/nextjs")
+        .then((Sentry) => {
+          Sentry.captureException(error, {
+            tags: { scope: this.props.scope || "unknown" },
+            extra: {
+              componentStack: info?.componentStack,
+              props: this.sanitizeProps(this.props),
+            },
+          });
+        })
+        .catch(() => {
+          // Sentry non disponible, log console
+          console.error("[ErrorBoundary]", error, info);
+        });
+    } else {
+      console.error("[ErrorBoundary]", error, info);
     }
-    console.error("Erreur interceptee par ErrorBoundary:", error, info);
+  }
+
+  // Reset automatique quand la route change (key ou pathname)
+  componentDidUpdate(prevProps) {
+    if (
+      this.state.hasError &&
+      (prevProps.resetKey !== this.props.resetKey ||
+        prevProps.children !== this.props.children)
+    ) {
+      this.reset();
+    }
+  }
+
+  reset = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      info: null,
+      errorId: null,
+    });
+
+    // Remonter en haut de page si erreur de page
+    if (this.props.scope === "page") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Sanitize props pour Sentry (éviter de log des données sensibles)
+  sanitizeProps(props) {
+    const safe = {};
+    const allowed = ["scope", "fallback", "resetKey"];
+    for (const key of allowed) {
+      if (key in props) safe[key] = props[key];
+    }
+    return safe;
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        this.props.fallback ?? (
-          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <h2 className="text-xl font-semibold text-navy-900">
-              Un probleme est survenu
-            </h2>
-            <p className="mt-2 text-navy-700/70">
-              Rechargez la page ou revenez a l'accueil. Si le probleme persiste,
-              contactez-nous via WhatsApp.
-            </p>
-            <button
-              onClick={() => this.setState({ hasError: false })}
-              className="mt-4 rounded-lg bg-mechanic-500 px-5 py-2 text-white hover:bg-mechanic-600"
-            >
-              Reessayer
-            </button>
-          </div>
-        )
-      );
+    if (!this.state.hasError) {
+      return this.props.children;
     }
 
-    return this.props.children;
+    const { error, info, errorId } = this.state;
+    const { scope = "section", fallback } = this.props;
+
+    // Fallback personnalisé fourni par le parent
+    if (fallback) {
+      return typeof fallback === "function"
+        ? fallback({ error, info, errorId, reset: this.reset })
+        : fallback;
+    }
+
+    // Fallback par défaut selon le scope
+    switch (scope) {
+      case "page":
+        return (
+          <ErrorPage
+            error={error}
+            info={info}
+            errorId={errorId}
+            onReset={this.reset}
+          />
+        );
+      case "component":
+        return (
+          <ErrorComponent
+            error={error}
+            errorId={errorId}
+            onReset={this.reset}
+          />
+        );
+      case "section":
+      default:
+        return (
+          <ErrorSection
+            error={error}
+            info={info}
+            errorId={errorId}
+            onReset={this.reset}
+          />
+        );
+    }
   }
 }

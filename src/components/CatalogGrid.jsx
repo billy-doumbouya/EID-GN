@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import { Reveal } from "@/components/motion/Reveal";
-import { ZigzagDivider } from "@/components/ZigzagDivider";
 import { useCatalogFilters } from "@/lib/uiStore";
 import { useSearchParams } from "next/navigation";
 import { PackageSearch, RotateCcw } from "lucide-react";
@@ -82,8 +81,6 @@ export function CatalogGrid({ type, title, categories = [] }) {
           </p>
         </Reveal>
       </div>
-
-      <ZigzagDivider color="var(--color-navy-900)" flip />
 
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
         <div className="mb-6 flex items-center justify-between gap-3">

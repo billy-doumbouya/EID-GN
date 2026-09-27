@@ -1,34 +1,50 @@
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Navbar } from "@/components/Navbar";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
 import { ConditionalWidgets } from "@/components/ConditionalWidgets";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500", "600"],
+});
+
 export const metadata = {
+  metadataBase: new URL("https://eid-gn.com"),
   title: {
-    default: "EID-GN Kankan - Motos, tricycles et pieces detachees",
-    template: "%s | EID-GN Kankan",
+    default: "EID-MULTISERVICE — Motos, tricycles & pièces détachées en Haute-Guinée",
+    template: "%s | EID-MULTISERVICE",
   },
   description:
-    "Achetez motos, tricycles et pieces detachees a Kankan. Paiement Orange Money et MTN Mobile Money. Livraison rapide.",
+    "Le spécialiste de la mobilité en Haute-Guinée. Vente de motos, tricycles, pièces détachées certifiées avec compatibilité vérifiée. Paiement Orange Money & MTN Mobile Money. Livraison rapide Kankan et région.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" className="h-full">
-      {/* 
-        1. flex flex-col min-h-screen : Permet au body de prendre au minimum 100% de la hauteur de l'écran.
-      */}
-      <body className="flex min-h-screen flex-col antialiased">
+    <html
+      lang="fr"
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full`}
+    >
+      <body className="flex min-h-screen flex-col font-sans bg-offwhite-100 text-navy-900 antialiased">
         <Providers>
           <Navbar />
-
-          {/* 
-            2. flex-1 : Indique au main de s'étirer pour remplir tout l'espace disponible 
-               entre la Navbar et le Footer.
-          */}
-          <main className="flex-1">{children}</main>
-
+            <main className="flex-1">{children}</main>
           <ConditionalFooter />
           <ConditionalWidgets />
         </Providers>

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ProductCard } from "@/components/ProductCard";
 
-export const metadata = { title: "Mes Favoris | EID-GN" };
+export const metadata = { title: "Mes Favoris | EID-MULTISERVICE" };
 
 export default async function FavoritesPage() {
   const session = await getCurrentUser();

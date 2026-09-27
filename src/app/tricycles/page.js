@@ -4,7 +4,7 @@ import { CatalogGrid } from "@/components/CatalogGrid";
 import { getCategoriesByType } from "@/lib/queries/categories";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Tricycles | EID-GN" };
+export const metadata = { title: "Tricycles | EID-MULTISERVICE" };
 
 export default async function TricyclesPage() {
   const categories = await getCategoriesByType("TRICYCLE");
